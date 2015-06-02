@@ -35,6 +35,8 @@ entrada: db ' ENTRADA = ';'-----------------------------------------------------
 
 entradaLEN	equ $ - entrada
 
+lenLetras	equ 26
+
 salida: db " RESULTADO = "
 salidaLEN equ $ - salida
 
@@ -49,17 +51,25 @@ varMsjEncriptado: db '..........................',10
 global _start							;Linker needs this to find the entry point!
 
 _start:
+;///// PRUEBA VALOR RETORNO ROTOR
+	;call read
+	;xor r15, r15
 
-	call read
-	xor r15, r15
+	;mov al, byte[rsi]					;se guarda el caracter leido
+	;mov rsi, varRotor1
+	;call getLetraRotor
+	;call addCharVarMsjEncriptado
+	;call printMsjEncriptado
+;///// PRUEBA VALOR RETORNO ROTOR
 
-	mov al, byte[rsi]					;se guarda el caracter leido
 	mov rsi, varRotor1
-	call getLetraRotor
-	mov [varMsjEncriptado+r15], byte al
-	inc r15
-	call printMsjEncriptado
 
+mov ecx, 26
+call printRotor1
+ciclo:
+	call girarRotor
+	call printRotor1
+loop ciclo
 	jmp done
 
 ;Read a buffer full of text from stdin:
@@ -80,7 +90,33 @@ ret
 
 getLetraRotor:
 	sub al, "A"						;se resta A para obtener el indice del entrada
-	mov al, byte[varRotor1+rax]
+	mov al, byte[rsi+rax]
+ret
+
+girarRotor:
+	push rax
+	push rcx
+	push r8
+	
+	mov r8b, byte [rsi]					;se guarda temporalmente la primer primer letra del rotor
+	xor rcx, rcx
+	.nextChar:
+		mov al, byte [rsi + rcx + 1]
+		mov [rsi + rcx], al
+		inc rcx							;indice
+		cmp byte [rsi + rcx], 0h	;si no ha llegado al final continua con el siguiente char/byte
+			jnz .nextChar
+			
+	mov byte [rsi + 25], r8b
+	
+	pop r8
+	pop rcx
+	pop rax
+ret
+
+addCharVarMsjEncriptado:
+	mov byte[varMsjEncriptado+r15], al
+	inc r15
 ret
 
 printMsjEncriptado:
@@ -101,6 +137,30 @@ printMsjEncriptado:
 
 	dec r15
 	mov byte[varMsjEncriptado+r15], 0h	;volvemos a insertar el caracter null al final
+
+	pop rdi
+	pop rsi
+	pop rdx
+	pop rcx
+	pop rax
+ret
+
+printRotor1:
+	push rax
+	push rcx
+	push rdx
+	push rsi
+	push rdi
+
+	mov byte[varRotor1+26], 10	;agregamos un cambio de linea
+
+	mov rax, 1								;sys_write (code 1)
+	mov rdi, 1								;file_descriptor (code 1 stdout)
+	mov rsi, varRotor1				;address of the buffer to print out
+	mov rdx, 27								;number of chars to print out
+	syscall										;system call
+
+	mov byte[varRotor1+26], 0h	;volvemos a insertar el caracter null al final
 
 	pop rdi
 	pop rsi
