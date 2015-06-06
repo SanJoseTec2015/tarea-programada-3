@@ -40,16 +40,28 @@ lenLetras	equ 26
 salida: db " RESULTADO = "
 salidaLEN equ $ - salida
 
-varRotor1: db 'AJDKSIRUXBLHWTMCQGZNPYFVOE',10,10
-varRotor2: db 'BDFHJLCPRTXVZNYEIWGAKMUSQO',10,10
-varRotor3: db 'VZBRGITYUPSDNHLXAWMJQOFECK',10,10
-varMsjEncriptado: db '..........................',10,10
+varRotor1: db 'AJDKSIRUXBLHWTMCQGZNPYFVOE',10
+varRotor2: db 'BDFHJLCPRTXVZNYEIWGAKMUSQO',10
+varRotor3: db 'VZBRGITYUPSDNHLXAWMJQOFECK',10
+varMsjEncriptado: db '..........................',10
 
 
 ;--------------------------------------------------- ESCAPE CODES
 ClearTerm: db 27,"[2J" 				; <ESC>[2J; clears display
 CLEARLEN equ $-ClearTerm 			; Length of term clear string
 ;--------------------------------------------------- /ESCAPE CODES
+
+
+;--------------------------------------------------- SLEEP
+
+  timeval:
+    tv_sec  dd 0
+    tv_usec dd 0
+	
+;--------------------------------------------------- /SLEEP
+
+
+;
 
 	section .text						;Section containing code
 
@@ -66,17 +78,19 @@ _start:
 	;call AddCharVarMsjEncriptado
 	;call PrintMsjEncriptado
 ;///// PRUEBA VALOR RETORNO ROTOR
-		call ClrScr
 
 
 	mov rsi, varRotor1
 
 mov ecx, 26
 call PrintRotor1
+		call ClrScr
+
 ciclo:
 	call GirarRotor
 	call PrintRotor1
 loop ciclo
+
 	jmp done
 
 ;Read a buffer full of text from stdin:
@@ -117,14 +131,22 @@ GirarRotor:
 	mov r8b, [rsi]						;se guarda temporalmente la primer primer letra del rotor
 	xor rcx, rcx			
 	.nextChar:
+
 		mov al, byte [rsi + rcx + 1] 	;se guarda el siguiente char en al > RSI rotor, RCX indice, 1 = siguiente char
 		mov byte [rsi + rcx+1 ], " "	;se mueve un caracter vacio en la posicion donde
+		
+		call Delay
+		call ClrScr
+		call PrintRotor1
+
+
 		mov [rsi + rcx], al					;se mueve el siguiente char a la posicion actual
 		inc rcx										;indice
-		cmp rcx, 26			;si no ha llegado al final continua con el siguiente char/byte
+
+		cmp rcx, 25			;si no ha llegado al final continua con el siguiente char/byte
 			jnz .nextChar
-			
-	mov byte [rsi + 25], r8b				;movemos al final del rotor la primera letra
+
+	mov byte [rsi + rcx], r8b				;movemos al final del rotor la primera letra
 	
 	pop r8
 	pop rcx
@@ -207,11 +229,32 @@ ClrScr:
 	push rsi
 	push rdx
 
+	mov rax, 1 			; sys_write (code 1)
+	mov rdi, 1 			; file_descriptor (code 1 stdout)
 	mov rsi, ClearTerm 		; Pass offset of terminal control string
 	mov rdx, CLEARLEN 		; Pass the length of terminal control string
+	syscall     			
 
 	pop rdx 			        ; Restore pertinent registers
 	pop rsi
 	pop rdi
 	pop rax
-	ret 				; Go home
+ret 				; Go home
+	
+Delay:
+	push rax
+	push rbx
+	push rcx
+
+
+	mov dword [tv_sec], 1		; Sleep n seconds
+	mov dword [tv_usec], 0		;Sleep 0 nanoseconds
+	mov rax, 162
+	mov rbx, timeval
+	mov rcx, 0
+	int 0x80
+	
+	pop rcx
+	pop rbx
+	pop rax
+ret
