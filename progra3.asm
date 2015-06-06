@@ -1,4 +1,4 @@
-;---------------------------------------------------------------------------------------------------------
+;--------------------------------------------------------------------------------------------------------;
 ;						INSTITUTO TECNOLÓGICO DE COSTA RICA
 ;									TAREA PROGRAMADA 3
 ;										PROYECTO FINAL
@@ -40,11 +40,16 @@ lenLetras	equ 26
 salida: db " RESULTADO = "
 salidaLEN equ $ - salida
 
-varRotor1: db 'AJDKSIRUXBLHWTMCQGZNPYFVOE',10
-varRotor2: db 'BDFHJLCPRTXVZNYEIWGAKMUSQO',10
-varRotor3: db 'VZBRGITYUPSDNHLXAWMJQOFECK',10
-varMsjEncriptado: db '..........................',10
+varRotor1: db 'AJDKSIRUXBLHWTMCQGZNPYFVOE',10,10
+varRotor2: db 'BDFHJLCPRTXVZNYEIWGAKMUSQO',10,10
+varRotor3: db 'VZBRGITYUPSDNHLXAWMJQOFECK',10,10
+varMsjEncriptado: db '..........................',10,10
 
+
+;--------------------------------------------------- ESCAPE CODES
+ClearTerm: db 27,"[2J" 				; <ESC>[2J; clears display
+CLEARLEN equ $-ClearTerm 			; Length of term clear string
+;--------------------------------------------------- /ESCAPE CODES
 
 	section .text						;Section containing code
 
@@ -57,18 +62,20 @@ _start:
 
 	;mov al, byte[rsi]					;se guarda el caracter leido
 	;mov rsi, varRotor1
-	;call getLetraRotor
-	;call addCharVarMsjEncriptado
-	;call printMsjEncriptado
+	;call GetLetraRotor
+	;call AddCharVarMsjEncriptado
+	;call PrintMsjEncriptado
 ;///// PRUEBA VALOR RETORNO ROTOR
+		call ClrScr
+
 
 	mov rsi, varRotor1
 
 mov ecx, 26
-call printRotor1
+call PrintRotor1
 ciclo:
-	call girarRotor
-	call printRotor1
+	call GirarRotor
+	call PrintRotor1
 loop ciclo
 	jmp done
 
@@ -88,38 +95,59 @@ read:
 	mov rsi, Buffer				;place the buffer address in the rsi
 ret
 
-getLetraRotor:
+GetLetraRotor:
 	sub al, "A"						;se resta A para obtener el indice del entrada
 	mov al, byte[rsi+rax]
 ret
 
-girarRotor:
+
+;------------------------------------------------------------------------------------------------------------
+; GirarRotor
+;
+; El procedimiento recibe en el RSI el el rotor que se quiere girar 1 pos
+;
+; E: RSI la direccion del buffer del rotor
+; M: nada
+;------------------------------------------------------------------------------------------------------------
+GirarRotor:
 	push rax
 	push rcx
 	push r8
 	
-	mov r8b, byte [rsi]					;se guarda temporalmente la primer primer letra del rotor
-	xor rcx, rcx
+	mov r8b, [rsi]						;se guarda temporalmente la primer primer letra del rotor
+	xor rcx, rcx			
 	.nextChar:
-		mov al, byte [rsi + rcx + 1]
-		mov [rsi + rcx], al
-		inc rcx							;indice
-		cmp byte [rsi + rcx], 0h	;si no ha llegado al final continua con el siguiente char/byte
+		mov al, byte [rsi + rcx + 1] 	;se guarda el siguiente char en al > RSI rotor, RCX indice, 1 = siguiente char
+		mov byte [rsi + rcx+1 ], " "	;se mueve un caracter vacio en la posicion donde
+		call PrintRotor1
+		mov [rsi + rcx], al					;se mueve el siguiente char a la posicion actual
+		inc rcx										;indice
+		cmp byte [rsi + rcx], 0h			;si no ha llegado al final continua con el siguiente char/byte
 			jnz .nextChar
 			
-	mov byte [rsi + 25], r8b
+	mov byte [rsi + 25], r8b				;movemos al final del rotor la primera letra
 	
 	pop r8
 	pop rcx
 	pop rax
 ret
 
-addCharVarMsjEncriptado:
+;------------------------------------------------------------------------------------------------------------
+; AddCharVarMsjEncriptado
+;
+; El procedimiento usa el registro R15 como indice global para el msj
+; que se va a encriptar, inserta la letra al final del texto y deja en R15
+; el indice que apuntal al final del texto.
+;
+; E: AL el char que se quiere agregar al msj encriptado
+; M: R15
+;------------------------------------------------------------------------------------------------------------
+AddCharVarMsjEncriptado:
 	mov byte[varMsjEncriptado+r15], al
 	inc r15
 ret
 
-printMsjEncriptado:
+PrintMsjEncriptado:
 	push rax
 	push rcx
 	push rdx
@@ -145,7 +173,7 @@ printMsjEncriptado:
 	pop rax
 ret
 
-printRotor1:
+PrintRotor1:
 	push rax
 	push rcx
 	push rdx
@@ -173,3 +201,18 @@ done:
 	mov rax, 60							;sys_exit (code 60)
 	mov rdi, 	0								;exit_code (code 0 successful)
 	syscall
+	
+ClrScr:
+	push rax 			; Save pertinent registers
+	push rdi
+	push rsi
+	push rdx
+
+	mov rsi, ClearTerm 		; Pass offset of terminal control string
+	mov rdx, CLEARLEN 		; Pass the length of terminal control string
+
+	pop rdx 			        ; Restore pertinent registers
+	pop rsi
+	pop rdi
+	pop rax
+	ret 				; Go home
