@@ -119,10 +119,9 @@ GirarRotor:
 	.nextChar:
 		mov al, byte [rsi + rcx + 1] 	;se guarda el siguiente char en al > RSI rotor, RCX indice, 1 = siguiente char
 		mov byte [rsi + rcx+1 ], " "	;se mueve un caracter vacio en la posicion donde
-		call PrintRotor1
 		mov [rsi + rcx], al					;se mueve el siguiente char a la posicion actual
 		inc rcx										;indice
-		cmp byte [rsi + rcx], 0h			;si no ha llegado al final continua con el siguiente char/byte
+		cmp rcx, 26			;si no ha llegado al final continua con el siguiente char/byte
 			jnz .nextChar
 			
 	mov byte [rsi + 25], r8b				;movemos al final del rotor la primera letra
