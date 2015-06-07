@@ -18,8 +18,6 @@
 BUFLEN equ 1					;We read the file 1024 bytes at a time
 Buffer resb BUFLEN					;Text buffer itself
 
-;Rotores resq 5
-
 	section .data						;Section containing initialized data
 
 ;varIntToStringLEN	equ $ - varIntToString
@@ -42,11 +40,21 @@ lenprimeraLetraRotors	equ 26
 salida: db " RESULTADO = "
 salidaLEN equ $ - salida
 
-Rotores:
-varRotor1: db 'AJDKSIRUXBLHWTMCQGZNPYFVOE',0h
-varRotor2: db 'BDFHJLCPRTXVZNYEIWGAKMUSQO',0h
-varRotor3: db 'VZBRGITYUPSDNHLXAWMJQOFECK',0h
+
+varRotor1 db 'AJDKSIRUXBLHWTMCQGZNPYFVOE',0h
+varRotor2 db 'BDFHJLCPRTXVZNYEIWGAKMUSQO',0h
+varRotor3 db 'VZBRGITYUPSDNHLXAWMJQOFECK',10
+
+Rotores dq varRotor1, varRotor2, varRotor3, 0h
+
+
 varMsjEncriptado: db '..........................',0h
+
+PatterAnimRotorU: db '<- <- <- <- <- <- <- <- <- <-',0h
+PatterAnimRotorR: db ' ^'
+PatterAnimRotorD: db '-> -> -> -> -> -> -> -> -> ->',0h
+PatterAnimRotorL: db 'v ',0h
+
 
 
 ;--------------------------------------------------- ESCAPE CODES
@@ -83,7 +91,7 @@ Digits: db "0001020304050607080910111213141516171819"
 	
 primeraLetraRotor: db 0h
 
-null: db ' '
+null: db ' '								;caracter en blanco para 'borrar' caracteres de pantalla
 
 	section .text						;Section containing code
 
@@ -100,17 +108,19 @@ _start:
 	;call AddCharVarMsjEncriptado
 	;call PrintMsjEncriptado
 ;///// PRUEBA VALOR RETORNO ROTOR
-	
 	call ClrScr
-
+;///// PRUEBA GIRAR ROTORES
 	mov rsi, varRotor1
-
 	mov ecx, 26
-ciclo:
-	call Delay
-	call GirarRotor
-loop ciclo
+	.ciclo:
+		call Delay
+		call GirarRotor
+	loop .ciclo
+;///// PRUEBA GIRAR ROTORES
 
+
+	call ClrScr
+	;call recorrerRotores
 	jmp done
 
 ;Read a buffer full of text from stdin:
@@ -134,7 +144,25 @@ GetLetraRotor:
 	mov al, byte[rsi+rax]
 ret
 
+recorrerRotores:
+	xor r10, r10
+		.siguienteRotor
+			mov rsi, [Rotores + r10 * 8]
+			call PrintRotor
+			call GirarRotor
 
+			inc 	r10						;next rotor
+			cmp r10, 3		
+				jnz .siguienteRotor
+
+	xor r10, r10
+		.ciclo
+			mov rsi, [Rotores + r10 * 8]
+			call GirarRotor
+			inc 	r10						;next rotor
+			cmp r10, 3		
+				jnz .ciclo
+ret
 ;------------------------------------------------------------------------------------------------------------
 ; GirarRotor
 ;
@@ -159,15 +187,15 @@ GirarRotor:
 		
 		mov byte [rsi + rcx], " "	;se mueve un caracter vacio en la posicion donde
 		
-		call PrintRotor1
+		call PrintRotor
 		call Delay
 
 		cmp rcx, 25			;si no ha llegado al final continua con el siguiente char/byte
 			jnz .nextChar
 	mov [rsi + rcx ], r8b				;movemos al final del rotor la primera primeraLetraRotor
-	inc rcx
+	inc rcx										;se incrementa el indice para borrar el caracter movido anterior
 	call limpiarLetraAnteriorMovida
-	call PrintRotor1
+	call PrintRotor
 
 
 	pop r8
@@ -197,17 +225,9 @@ PrintMsjEncriptado:
 	push rsi
 	push rdi
 
-	mov byte[varMsjEncriptado+r15], 10	;agregamos un cambio de linea
-	inc r15
-
-	mov rax, 1								;sys_write (code 1)
-	mov rdi, 1								;file_descriptor (code 1 stdout)
 	mov rsi, varMsjEncriptado				;address of the buffer to print out
 	mov rdx, r15								;number of chars to print out
-	syscall										;system call
-
-	dec r15
-	mov byte[varMsjEncriptado+r15], 0h	;volvemos a insertar el caracter null al final
+	call sys_write	
 
 	pop rdi
 	pop rsi
@@ -216,57 +236,33 @@ PrintMsjEncriptado:
 	pop rax
 ret
 
-PrintRotor1:
+animarPrimeraLetraRotor:
 	push rax
 	push rcx
 	push rdx
 	push rsi
 	push rdi
 	
-	cmp rcx, 25
-		ja .continuar
-		call moverPrimeraLetraRotor ;else
+	call limpiarLetraAnteriorMovida
+
+	mov ah, cl					; POS X, cl = indice dentro del rotor
+	add ah, 4					; corremos la posicion 6 espacios	
 	
-	.continuar
-	mov ah, 1					; POS Y
-	mov al, 1					; POS X
+	mov al, r10b			; POS Y indice dentro del ciclo de los rotores
+	shl al, 2						
+	add al, 4					;POS Y = pos rotor * 2 +3
+	
 	call GotoXY
 
 
-	mov rax, 1								;sys_write (code 1)
-	mov rdi, 1								;file_descriptor (code 1 stdout)
-	mov rsi, varRotor1				;address of the buffer to print out
-	mov rdx, 26								;number of chars to print out
-	syscall										;system call
-
+	mov rsi, primeraLetraRotor		;address of char to print out
+	mov rdx, 1								;number of chars to print out
+	call sys_write	
+	
 	pop rdi
 	pop rsi
 	pop rdx
 	pop rcx
-	pop rax
-ret
-
-
-moverPrimeraLetraRotor:
-	push rax
-	push rdx
-	push rsi
-	push rdi
-	
-	call limpiarLetraAnteriorMovida
-	mov ah, cl						; POS X
-	mov al, 2						; POS Y TO DO poner aca el indice dentro del ciclo de los rotores
-	call GotoXY
-
-	mov rax, 1								;sys_write (code 1)
-	mov rdi, 1									;file_descriptor (code 1 stdout)
-	mov rsi, primeraLetraRotor		;address of char to print out
-	mov rdx, 8								;number of chars to print out
-	syscall											;system call
-
-	pop rdi
-	pop rsi
-	pop rdx
 	pop rax
 ret
 
@@ -277,17 +273,19 @@ limpiarLetraAnteriorMovida:
 	push rsi
 	push rdi
 	
-	dec rcx
-	mov ah, cl					; POS X
-	mov al, 2					; POS Y TO DO poner aca el indice dentro del ciclo de los rotores
+	mov ah, cl					; POS X, cl = indice dentro del rotor
+	add ah, 3					; corremos la posicion 4 espacios	
+	
+	mov al, r10b			; POS Y indice dentro del ciclo de los rotores
+	shl al, 2						
+	add al, 4					;POS Y = pos rotor * 2 +3
+	
 	call GotoXY
 
-	mov rax, 1								;sys_write (code 1)
-	mov rdi, 1									;file_descriptor (code 1 stdout)
-	mov rsi, null					;address of char to print out
+	mov rsi, null		;address of char to print out
 	mov rdx, 1								;number of chars to print out
-	syscall											;system call
-
+	call sys_write	
+	
 	pop rdi
 	pop rsi
 	pop rdx
@@ -308,11 +306,9 @@ ClrScr:
 	push rsi
 	push rdx
 
-	mov rax, 1 			; sys_write (code 1)
-	mov rdi, 1 			; file_descriptor (code 1 stdout)
 	mov rsi, ClearTerm 		; Pass offset of terminal control string
 	mov rdx, CLEARLEN 		; Pass the length of terminal control string
-	syscall
+	call sys_write	
 
 	pop rdx 			        ; Restore pertinent registers
 	pop rsi
@@ -373,11 +369,9 @@ GotoXY:
 	mov word [PosTerm + 5], cx 	; Poke digits into control string
 
 	; Send control sequence to stdout:
-	mov rax, 1								;sys_write (code 1)
-	mov rdi, 1								;file_descriptor (code 1 stdout)
 	mov rsi, PosTerm 		; Pass address of the control string
 	mov rdx, POSLEN 			; Pass the length of the control string
-	syscall 
+	call sys_write	 
 	
 	; Wrap up and go home:
 	pop rdx    			; Restore callers registers
@@ -385,4 +379,116 @@ GotoXY:
 	pop rcx 
 	pop rbx 
 	pop rax
-	ret 				; Go home
+ret 				; Go home
+	
+animarRotor:
+	push rax
+	push rcx
+	push rdx
+	push rsi
+	push rdi
+	push r8
+	
+	mov r8 , 1
+	and r8, rcx			; resultado 1 o 0... usado para la animacion
+	
+	call animarFlechasU
+	call animarFlechasR
+	call animarFlechasD
+	call animarFlechasL
+	
+	pop r8
+	pop rdi
+	pop rsi
+	pop rdx
+	pop rcx
+	pop rax
+ret
+
+animarFlechasU:
+	mov ah, 4				; POS X = 5 espacios desde la pos inicial
+	mov al, r10b			; POS Y
+	shl al, 2						
+	add al, 2					;POS Y = pos rotor * 2 + 2 POSICION ANTES DEL ROTOR
+	call GotoXY
+	lea rsi, [PatterAnimRotorU+r8]	;address of the buffer to print out
+	mov rdx, 27								;number of chars to print out
+	call sys_write		
+ret
+
+animarFlechasR:
+	mov ah, 4+27			; POS X = 4 espacios desde la pos inicial + 26 letras
+	mov al, r10b			; POS Y
+	shl al, 2						
+	add al, 3					;POS Y = pos rotor * 2 + 3POSICION DEL ROTOR
+	call GotoXY
+	lea rsi, [PatterAnimRotorR+r8]	;address of the buffer to print out
+	mov rdx, 1								;number of chars to print out
+	call sys_write		
+ret
+
+animarFlechasD:
+	mov ah, 4				; POS X = 5 espacios desde la pos inicial
+	mov al, r10b			; POS Y
+	shl al, 2						
+	add al, 4					;POS Y = pos rotor * 2 +3
+	call GotoXY
+	lea rsi, [PatterAnimRotorD+r8]	;address of the buffer to print out
+	mov rdx, 27								;number of chars to print out
+	call sys_write			
+ret
+
+animarFlechasL:
+	mov ah, 4				; POS X = 5 espacios desde la pos inicial
+	mov al, r10b			; POS Y
+	shl al, 2						
+	add al, 3					;POS Y = pos rotor * 2 + 3 POSICION DEL ROTOR
+	call GotoXY
+	lea rsi, [PatterAnimRotorL+r8]	;address of the buffer to print out
+	mov rdx, 1								;number of chars to print out
+	call sys_write		
+ret
+
+sys_write:
+	push rax
+	push rdi 
+	
+	mov rax, 1								;sys_write (code 1)
+	mov rdi, 1								;file_descriptor (code 1 stdout)
+	syscall										;system call
+	
+	pop rdi
+	pop rax
+ret
+	
+PrintRotor:
+	push rax
+	push rcx
+	push rdx
+	push rsi
+	push rdi
+	
+	call animarRotor
+	cmp rcx, 25									; lama a la animacion de mover letra si la letra no esta en la ultima posicion
+		ja .continuar
+		call animarPrimeraLetraRotor ;else
+	
+	.continuar
+	mov ah, 5					; POS X = 5 espacios desde la pos inicial
+	
+	mov al, r10b			; POS Y
+	shl al, 2						
+	add al, 3					;POS Y = pos rotor * 2 +3
+	
+	call GotoXY
+
+	mov rsi, rsi				;address of the buffer to print out
+	mov rdx, 27								;number of chars to print out
+	call sys_write
+	
+	pop rdi
+	pop rsi
+	pop rdx
+	pop rcx
+	pop rax
+ret
