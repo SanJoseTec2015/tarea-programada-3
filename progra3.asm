@@ -87,6 +87,13 @@ Digits:	db "0001020304050607080910111213141516171819"
 	
 primeraLetraRotor: db 0h		;para almacenar la letra que se va a imprimir en la pantalla
 
+flechaU: db '^'
+flechaR: db '>'
+flechaD: db '<'
+entradL: db 'v'
+
+debbug: db '#'
+
 null: db ' '								;caracter en blanco para 'borrar' caracteres de pantalla
 
 	section .text						;Section containing code
@@ -106,7 +113,7 @@ _start:
 ;///// PRUEBA VALOR RETORNO ROTOR
 	call ClrScr
 
-	call recorrerRotores
+	call RecorrerRotores
 	jmp done
 
 ;Read a buffer full of text from stdin:
@@ -126,32 +133,110 @@ read:
 ret
 
 GetLetraRotor:
-	sub al, "A"						;se resta A para obtener el indice del entrada
+	sub rax, "A"						;se resta A para obtener el indice del entrada
 	mov al, byte[rsi+rax]
 ret
 
-recorrerRotores:
+RecorrerRotores:
 	xor r10, r10
 		.siguienteRotor
 			mov rsi, [Rotores + r10 * 8]
 			call PrintRotor
-			call animarRotor
+			call AnimarRotor
 
 			inc 	r10						;next rotor
 			cmp r10, 3 	; la cantidad de rotores		
 				jnz .siguienteRotor
 		
+	mov rax, 'W'
 	xor r10, r10
 		.siguienteRotor2
 			mov rsi, [Rotores + r10 * 8]
-			call GirarRotor
+			;call GirarRotor
+			call Delay
+			;call AnimarRotor
+			call AnimarBusquedaLetra
+			call GetLetraRotor
 
 			inc 	r10						;next rotor
 			cmp r10, 3 	; la cantidad de rotores		
 				jnz .siguienteRotor2
+				
+		call AddCharVarMsjEncriptado
+		call PrintMsjEncriptado
 		;mov rsi, varRotor2
 		;mov r10, 1
 		;call PRUEBA_GIRAR_ROTORES
+ret
+
+AnimarBusquedaLetra:
+	push rax
+	push rcx
+	push rdx
+
+	;-----POS  DE SALIDA DEL ROTOR ACTUAL
+	sub al, "A"						;se resta A para obtener el indice del entrada
+	mov dl, al
+	call GetPosRotorActual
+	add ah, dl						;se incrementa desde la posicon inicial hasta el indice
+	dec al								;se sube una linea
+	call GotoXY
+	call printDebbug
+	
+	add al, 2							;se baja una linea
+	call GotoXY
+	call printDebbug
+	
+	xor rax, rax
+	;-----POS DE ENTRADA DEL ROTOR SIGUIENTE
+	mov al, byte[rsi + rdx]
+	call GetLetraRotor
+	sub al, "A"						;se resta A para obtener el indice del entrada
+	mov cl, al
+	
+	cmp dl, cl
+		jb .ponerFlechasR
+		
+		
+		jmp .exit
+		
+	.ponerFlechasL
+		dec cl
+
+		call GetPosRotorActual
+		add ah, cl						;se incrementa desde la posicon inicial hasta el indice
+		inc al								;se sube una linea
+		call GotoXY
+		
+		call printDebbug
+		cmp cl, dl
+			ja .ponerFlechasL
+
+
+	.ponerFlechasR		
+	
+		
+		call GetPosRotorActual
+		add ah, dl						;se incrementa desde la posicon inicial hasta el indice
+		inc al								;se sube una linea
+		call GotoXY
+		call printDebbug
+
+		inc dl
+
+		cmp dl, cl
+			jnz .ponerFlechasR
+		inc al
+		call GotoXY
+		call printDebbug
+	
+
+.exit
+
+
+	pop rdx
+	pop rcx
+	pop rax
 ret
 
 PRUEBA_GIRAR_ROTORES:
@@ -219,30 +304,28 @@ ret
 
 PrintMsjEncriptado:
 	push rax
-	push rcx
 	push rdx
 	push rsi
-	push rdi
-
+	
+	; Position the cursor for the "Press Enter" prompt:
+	mov ax, 0522h 			; X,Y = 1,23 as a single hex value in AX
+	call GotoXY 			; Position the cursor
+	
 	mov rsi, varMsjEncriptado				;address of the buffer to print out
-	mov rdx, r15								;number of chars to print out
+	mov rdx, r15									;number of chars to print out
 	call sys_write	
 
-	pop rdi
 	pop rsi
 	pop rdx
-	pop rcx
 	pop rax
 ret
 
 animarPrimeraLetraRotor:
-	push rax
 	push rcx
 	push rdx
 	push rsi
-	push rdi
 	
-	call animarRotor
+	call AnimarRotor
 	
 	call limpiarLetraAnteriorMovida
 
@@ -260,19 +343,15 @@ animarPrimeraLetraRotor:
 	mov rdx, 1								;number of chars to print out
 	call sys_write	
 	
-	pop rdi
 	pop rsi
 	pop rdx
 	pop rcx
-	pop rax
 ret
 
 limpiarLetraAnteriorMovida:
-	push rax
 	push rcx
 	push rdx
 	push rsi
-	push rdi
 	
 	mov ah, cl					; POS X, cl = indice dentro del rotor
 	add ah, 3					; corremos la posicion 4 espacios	
@@ -287,11 +366,9 @@ limpiarLetraAnteriorMovida:
 	mov rdx, 1								;number of chars to print out
 	call sys_write	
 	
-	pop rdi
 	pop rsi
 	pop rdx
 	pop rcx
-	pop rax
 ret
 
 
@@ -302,8 +379,6 @@ done:
 	syscall
 	
 ClrScr:
-	push rax 			; Save pertinent registers
-	push rdi
 	push rsi
 	push rdx
 
@@ -313,8 +388,6 @@ ClrScr:
 
 	pop rdx 			        ; Restore pertinent registers
 	pop rsi
-	pop rdi
-	pop rax
 ret 				; Go home
 	
 Delay:
@@ -384,12 +457,10 @@ GotoXY:
 	pop rax
 ret 				; Go home
 	
-animarRotor:
-	push rax
+AnimarRotor:
 	push rcx
 	push rdx
 	push rsi
-	push rdi
 	push r8
 	
 	mov r8 , 1
@@ -399,31 +470,27 @@ animarRotor:
 	call animarFlechasD
 	
 	pop r8
-	pop rdi
 	pop rsi
 	pop rdx
 	pop rcx
-	pop rax
 ret
 
 animarFlechasU:
-	mov ah, 4				; POS X = 5 espacios desde la pos inicial
-	mov al, r10b			; POS Y
-	shl al, 2						
-	add al, 2					;POS Y = pos rotor * 2 + 2 POSICION ANTES DEL ROTOR
+    call GetPosRotorActual
+	dec al											;se corre una posicon hacia arriba
+	dec ah											;se corre una posicon hacia la izq
 	call GotoXY
-	lea rsi, [PatternAnimRotorU+r8]	;address of the buffer to print out
+	lea rsi, [PatternAnimRotorU+r8]	;address of the buffer to print out	;dependiendo si r8 es 0 o 1 se crea el efecto de animacion
 	mov rdx, 28								;number of chars to print out
 	call sys_write		
 ret
 
 animarFlechasD:
-	mov ah, 4				; POS X = 5 espacios desde la pos inicial
-	mov al, r10b			; POS Y
-	shl al, 2						
-	add al, 4					;POS Y = pos rotor * 2 +3
+    call GetPosRotorActual
+	dec ah											;se corre una posicon hacia atras
+	inc al											;se corre una posicon hacia abajo
 	call GotoXY
-	lea rsi, [PatternAnimRotorD+r8]	;address of the buffer to print out
+	lea rsi, [PatternAnimRotorD+r8]	;address of the buffer to print out ;dependiendo si r8 es 0 o 1 se crea el efecto de animacion
 	mov rdx, 28								;number of chars to print out
 	call sys_write			
 ret
@@ -439,34 +506,49 @@ sys_write:
 	pop rdi
 	pop rax
 ret
+
+GetPosRotorActual:
+	mov ah, 5					; POS X = 5 espacios desde la pos inicial
 	
+	mov al, r10b			; POS Y
+	shl al, 2
+	add al, 3					;POS Y = pos rotor * 2 + 4
+ret
+	
+	
+printDebbug:
+	push rcx
+	push rsi
+	push rdx
+	
+	mov rsi, debbug				;address of the buffer to print out
+	mov rdx, 1				;number of chars to print out
+	call sys_write
+	
+	pop rdx
+	pop rsi
+	pop rcx
+ret
+
 PrintRotor:
-	push rax
 	push rcx
 	push rdx
 	push rsi
-	push rdi
 	
 	cmp rcx, 25									; lama a la animacion de mover letra si la letra no esta en la ultima posicion
 		ja .continuar
 		call animarPrimeraLetraRotor ;else
 	
 	.continuar
-	mov ah, 5					; POS X = 5 espacios desde la pos inicial
-	
-	mov al, r10b			; POS Y
-	shl al, 2						
-	add al, 3					;POS Y = pos rotor * 2 +3
-	
+
+	call GetPosRotorActual
 	call GotoXY
 
-	mov rsi, rsi				;address of the buffer to print out
+	mov rsi, rsi									;address of the buffer to print out
 	mov rdx, 27								;number of chars to print out
 	call sys_write
 	
-	pop rdi
 	pop rsi
 	pop rdx
 	pop rcx
-	pop rax
 ret
