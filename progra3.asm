@@ -43,15 +43,15 @@ salidaLEN equ $ - salida
 
 varRotor1 db 'AJDKSIRUXBLHWTMCQGZNPYFVOE',0h
 varRotor2 db 'BDFHJLCPRTXVZNYEIWGAKMUSQO',0h
-varRotor3 db 'VZBRGITYUPSDNHLXAWMJQOFECK',10
+varRotor3 db 'VZBRGITYUPSDNHLXAWMJQOFECK',0h
 
 Rotores dq varRotor1, varRotor2, varRotor3, 0h
 
 
 varMsjEncriptado: db '..........................',0h
 
-PatternAnimRotorU: db '< < < < < < < < < < < < < < <',0h
-PatternAnimRotorD: db '> > > > > > > > > > > > > > >',0h
+PatternAnimRotorU: db '< < < < < < < < < < < < < < <',10
+PatternAnimRotorD: db '> > > > > > > > > > > > > > >',10
 
 
 
@@ -140,16 +140,25 @@ recorrerRotores:
 			inc 	r10						;next rotor
 			cmp r10, 3 	; la cantidad de rotores		
 				jnz .siguienteRotor
-				
-		call PRUEBA_GIRAR_ROTORES
+		
+	xor r10, r10
+		.siguienteRotor2
+			mov rsi, [Rotores + r10 * 8]
+			call GirarRotor
+
+			inc 	r10						;next rotor
+			cmp r10, 3 	; la cantidad de rotores		
+				jnz .siguienteRotor2
+		;mov rsi, varRotor2
+		;mov r10, 1
+		;call PRUEBA_GIRAR_ROTORES
 ret
 
 PRUEBA_GIRAR_ROTORES:
-	mov rsi, varRotor1
 	mov ecx, 26
 	.ciclo:
-		call Delay
 		call GirarRotor
+		call Delay
 	loop .ciclo
 ret
 ;------------------------------------------------------------------------------------------------------------
@@ -313,6 +322,7 @@ Delay:
 	push rbx
 	push rcx
 	push r8
+	push r10
 
 
 	mov dword [tv_sec], 0		; Sleep n seconds
@@ -322,6 +332,7 @@ Delay:
 	mov rcx, 0
 	int 0x80
 	
+	pop r10
 	pop r8
 	pop rcx
 	pop rbx
