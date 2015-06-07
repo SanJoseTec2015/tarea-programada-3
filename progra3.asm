@@ -50,10 +50,8 @@ Rotores dq varRotor1, varRotor2, varRotor3, 0h
 
 varMsjEncriptado: db '..........................',0h
 
-PatterAnimRotorU: db '< < < < < < < < < < < < < < <',0h
-PatterAnimRotorR: db '^ '
-PatterAnimRotorD: db '> > > > > > > > > > > > > > >',0h
-PatterAnimRotorL: db ' v',0h
+PatternAnimRotorU: db '< < < < < < < < < < < < < < <',0h
+PatternAnimRotorD: db '> > > > > > > > > > > > > > >',0h
 
 
 
@@ -387,9 +385,7 @@ animarRotor:
 	and r8, rcx			; resultado 1 o 0... usado para la animacion
 	
 	call animarFlechasU
-	;call animarFlechasR
 	call animarFlechasD
-	;call animarFlechasL
 	
 	pop r8
 	pop rdi
@@ -405,19 +401,8 @@ animarFlechasU:
 	shl al, 2						
 	add al, 2					;POS Y = pos rotor * 2 + 2 POSICION ANTES DEL ROTOR
 	call GotoXY
-	lea rsi, [PatterAnimRotorU+r8]	;address of the buffer to print out
+	lea rsi, [PatternAnimRotorU+r8]	;address of the buffer to print out
 	mov rdx, 28								;number of chars to print out
-	call sys_write		
-ret
-
-animarFlechasR:
-	mov ah, 4+27			; POS X = 4 espacios desde la pos inicial + 26 letras
-	mov al, r10b			; POS Y
-	shl al, 2						
-	add al, 3					;POS Y = pos rotor * 2 + 3POSICION DEL ROTOR
-	call GotoXY
-	lea rsi, [PatterAnimRotorR+r8]	;address of the buffer to print out
-	mov rdx, 1								;number of chars to print out
 	call sys_write		
 ret
 
@@ -427,20 +412,9 @@ animarFlechasD:
 	shl al, 2						
 	add al, 4					;POS Y = pos rotor * 2 +3
 	call GotoXY
-	lea rsi, [PatterAnimRotorD+r8]	;address of the buffer to print out
+	lea rsi, [PatternAnimRotorD+r8]	;address of the buffer to print out
 	mov rdx, 28								;number of chars to print out
 	call sys_write			
-ret
-
-animarFlechasL:
-	mov ah, 4				; POS X = 5 espacios desde la pos inicial
-	mov al, r10b			; POS Y
-	shl al, 2						
-	add al, 3					;POS Y = pos rotor * 2 + 3 POSICION DEL ROTOR
-	call GotoXY
-	lea rsi, [PatterAnimRotorL+r8]	;address of the buffer to print out
-	mov rdx, 1								;number of chars to print out
-	call sys_write		
 ret
 
 sys_write:
