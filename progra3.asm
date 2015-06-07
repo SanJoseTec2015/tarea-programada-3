@@ -50,10 +50,10 @@ Rotores dq varRotor1, varRotor2, varRotor3, 0h
 
 varMsjEncriptado: db '..........................',0h
 
-PatterAnimRotorU: db '<- <- <- <- <- <- <- <- <- <-',0h
-PatterAnimRotorR: db ' ^'
-PatterAnimRotorD: db '-> -> -> -> -> -> -> -> -> ->',0h
-PatterAnimRotorL: db 'v ',0h
+PatterAnimRotorU: db '< < < < < < < < < < < < < < <',0h
+PatterAnimRotorR: db '^ '
+PatterAnimRotorD: db '> > > > > > > > > > > > > > >',0h
+PatterAnimRotorL: db ' v',0h
 
 
 
@@ -67,13 +67,11 @@ CLEARLEN equ $-ClearTerm 			; Length of term clear string
 
 
 
-;--------------------------------------------------- SLEEP
-
+;--------------------------------------------------- PARAMETROS DELAY 
   timeval:
     tv_sec  dd 0
     tv_usec dd 0
-	
-;--------------------------------------------------- /SLEEP
+;--------------------------------------------------- / PARAMETROS DELAY
 
 ; This table gives us pairs of ASCII digits from 0-80. Rather than
 ; calculate ASCII digits to insert in the terminal control string,
@@ -84,12 +82,12 @@ CLEARLEN equ $-ClearTerm 			; Length of term clear string
 ; add additional ASCII digit encoding to the end of Digits. Keep in
 ; mind that the code shown here will only work up to 99 X 99.
 
-Digits: db "0001020304050607080910111213141516171819"
-	db "2021222324252627282930313233343536373839"
-	db "4041424344454647484950515253545556575859"
-	db "606162636465666768697071727374757677787980"
+Digits:	db "0001020304050607080910111213141516171819"
+			db "2021222324252627282930313233343536373839"
+			db "4041424344454647484950515253545556575859"
+			db "606162636465666768697071727374757677787980"
 	
-primeraLetraRotor: db 0h
+primeraLetraRotor: db 0h		;para almacenar la letra que se va a imprimir en la pantalla
 
 null: db ' '								;caracter en blanco para 'borrar' caracteres de pantalla
 
@@ -109,18 +107,8 @@ _start:
 	;call PrintMsjEncriptado
 ;///// PRUEBA VALOR RETORNO ROTOR
 	call ClrScr
-;///// PRUEBA GIRAR ROTORES
-	mov rsi, varRotor1
-	mov ecx, 26
-	.ciclo:
-		call Delay
-		call GirarRotor
-	loop .ciclo
-;///// PRUEBA GIRAR ROTORES
 
-
-	call ClrScr
-	;call recorrerRotores
+	call recorrerRotores
 	jmp done
 
 ;Read a buffer full of text from stdin:
@@ -149,19 +137,22 @@ recorrerRotores:
 		.siguienteRotor
 			mov rsi, [Rotores + r10 * 8]
 			call PrintRotor
-			call GirarRotor
+			call animarRotor
 
 			inc 	r10						;next rotor
-			cmp r10, 3		
+			cmp r10, 3 	; la cantidad de rotores		
 				jnz .siguienteRotor
+				
+		call PRUEBA_GIRAR_ROTORES
+ret
 
-	xor r10, r10
-		.ciclo
-			mov rsi, [Rotores + r10 * 8]
-			call GirarRotor
-			inc 	r10						;next rotor
-			cmp r10, 3		
-				jnz .ciclo
+PRUEBA_GIRAR_ROTORES:
+	mov rsi, varRotor1
+	mov ecx, 26
+	.ciclo:
+		call Delay
+		call GirarRotor
+	loop .ciclo
 ret
 ;------------------------------------------------------------------------------------------------------------
 ; GirarRotor
@@ -175,6 +166,7 @@ GirarRotor:
 	push rax
 	push rcx
 	push r8
+	push rsi
 	
 	mov r8b, [rsi]						;se guarda temporalmente la primer primer primeraLetraRotor del rotor
 	mov [primeraLetraRotor], r8b
@@ -197,7 +189,7 @@ GirarRotor:
 	call limpiarLetraAnteriorMovida
 	call PrintRotor
 
-
+	pop rsi
 	pop r8
 	pop rcx
 	pop rax
@@ -242,6 +234,8 @@ animarPrimeraLetraRotor:
 	push rdx
 	push rsi
 	push rdi
+	
+	call animarRotor
 	
 	call limpiarLetraAnteriorMovida
 
@@ -324,7 +318,7 @@ Delay:
 
 
 	mov dword [tv_sec], 0		; Sleep n seconds
-	mov dword [tv_usec], 100*1000000		;Sleep n nanoseconds 500*1000000 = 500 miliseg
+	mov dword [tv_usec], 200*1000000		;Sleep n nanoseconds 500*1000000 = 500 miliseg
 	mov rax, 162
 	mov rbx, timeval
 	mov rcx, 0
@@ -393,9 +387,9 @@ animarRotor:
 	and r8, rcx			; resultado 1 o 0... usado para la animacion
 	
 	call animarFlechasU
-	call animarFlechasR
+	;call animarFlechasR
 	call animarFlechasD
-	call animarFlechasL
+	;call animarFlechasL
 	
 	pop r8
 	pop rdi
@@ -412,7 +406,7 @@ animarFlechasU:
 	add al, 2					;POS Y = pos rotor * 2 + 2 POSICION ANTES DEL ROTOR
 	call GotoXY
 	lea rsi, [PatterAnimRotorU+r8]	;address of the buffer to print out
-	mov rdx, 27								;number of chars to print out
+	mov rdx, 28								;number of chars to print out
 	call sys_write		
 ret
 
@@ -434,7 +428,7 @@ animarFlechasD:
 	add al, 4					;POS Y = pos rotor * 2 +3
 	call GotoXY
 	lea rsi, [PatterAnimRotorD+r8]	;address of the buffer to print out
-	mov rdx, 27								;number of chars to print out
+	mov rdx, 28								;number of chars to print out
 	call sys_write			
 ret
 
@@ -468,7 +462,6 @@ PrintRotor:
 	push rsi
 	push rdi
 	
-	call animarRotor
 	cmp rcx, 25									; lama a la animacion de mover letra si la letra no esta en la ultima posicion
 		ja .continuar
 		call animarPrimeraLetraRotor ;else
