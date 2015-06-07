@@ -50,7 +50,7 @@ Rotores dq varRotor1, varRotor2, varRotor3, 0h
 
 varMsjEncriptado: db '..........................',0h
 
-PatternAnimRotorU: db '< < < < < < < < < < < < < < <',10
+PatternAnimRotorU: db ' < < < < < < < < < < < < < < <',10
 PatternAnimRotorD: db '> > > > > > > > > > > > > > >',10
 
 
@@ -141,20 +141,18 @@ GetLetraRotorEntrando:
 ret
 
 RecorrerBufferAEncriptar:
-xor r11, r11
+xor rcx, rcx
 	.siguienteLetra
-		mov rax , [MensajeAEncriptar + r11]
+		mov al, byte[MensajeAEncriptar + rcx]
 		call EncriptarLetra
-		inc r11
-		cmp byte[MensajeAEncriptar + r11], 0h
+		inc rcx
+		cmp byte[MensajeAEncriptar + rcx], 0h
 			jnz .siguienteLetra
 ret
 
 EncriptarLetra:
 	push rcx
-	push r11
 
-	mov rax, 'H'
 	xor r10, r10
 		.siguienteRotor
 			mov rsi, [Rotores + r10 * 8]
@@ -162,7 +160,7 @@ EncriptarLetra:
 			call AnimarRotor
 
 			inc 	r10						;next rotor
-			cmp r10, 3 	; la cantidad de rotores		
+			cmp r10, 3 				; la cantidad de rotores		
 				jnz .siguienteRotor
 	
 
@@ -195,7 +193,6 @@ EncriptarLetra:
 		xor r10, r10
 		call GirarRotor
 		
-		pop r11
 		pop rcx
 ret
 
