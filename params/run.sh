@@ -1,3 +1,5 @@
 #!/bin/sh
 make #> /dev/null
-./stacktest prueba > output
+echo "\n"
+./stacktest prueba #> output #| tee output
+echo "\n"
