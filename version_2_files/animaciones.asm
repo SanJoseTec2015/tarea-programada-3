@@ -5,8 +5,8 @@ PatternAnimRotorD: db '> > > > > > > > > > > > > > >',10
 
 ;--------------------------------------------------- PARAMETROS DELAY 
   timeval:
-    tv_sec  dd 0
-    tv_usec dd 0
+	tv_sec  dd 0
+	tv_usec dd 0
 
 ;--------------------------------------------------- ESCAPE CODES
 PosTerm: db 27,"[01;01H" 			; <ESC>[<Y>;<X>H
@@ -51,27 +51,25 @@ PrintMsjEncriptado:			; imprime al pie de pagina el buffer con el msj encriptado
 	push rdx
 	push rsi
 	
-	; Position the cursor for the "Press Enter" prompt:
-	mov ax, 0515h 			; X,Y = 1,23 as a single hex value in AX
+	mov ax, 2807h 			; X,Y = 28,07 as a single hex value in AX
 	call GotoXY 			; Position the cursor
 	
-	
-	mov rsi, varMsjEncriptado
-	mov rdx, r15			; number of chars to print out
+	mov rsi, varMsjEncriptado				;address of the buffer to print out
+	mov rdx, r15									;number of chars to print out
 	call sys_write	
 	
-		; Position the cursor for the "Press Enter" prompt:
-	mov ax, 0514h 			; X,Y = 1,23 as a single hex value in AX
+	mov ax, 2805h 			; X,Y = 28,07 as a single hex value in AX
 	call GotoXY 			; Position the cursor
 	
-	mov rsi, MensajeAEncriptar
-	mov rdx, r15			;number of chars to print out
+	mov rsi, MensajeAEncriptar				;address of the buffer to print out
+	mov rdx, r15									;number of chars to print out
 	call sys_write	
 
 	pop rsi
 	pop rdx
 	pop rax
 ret
+
 PrintRotor:
 	push rax
 	push rcx
@@ -236,7 +234,7 @@ limpiarLetraAnteriorMovida:
 ret
 
 animarFlechasU:
-    call GetPosRotorActual
+	call GetPosRotorActual
 	dec al									;se corre una posicon hacia arriba
 	dec ah									;se corre una posicon hacia la izq
 	call GotoXY
@@ -246,7 +244,7 @@ animarFlechasU:
 ret
 
 animarFlechasD:
-    call GetPosRotorActual
+	call GetPosRotorActual
 	dec ah									;se corre una posicon hacia atras
 	inc al									;se corre una posicon hacia abajo
 	call GotoXY
@@ -255,13 +253,12 @@ animarFlechasD:
 	call sys_write			
 ret
 
-; FIXME: Esta función necesita más documentación
 GetPosRotorActual:
 	mov ah, 5					; POS X = 5 espacios desde la pos inicial
 	
-	mov al, r10b				; POS Y
-	shl al, 2
-	add al, 3					; POS Y = pos rotor * 2 + 4
+	mov al, r10b				; POS Y	R10 es el indice del rotor actual, usado como escala relativa al top de la pantalla
+	shl al, 2						; se multiplica por 4 el indice para dejar una separacion en pantalla de cada rotor
+	add al, 3						; POS Y = pos rotor * 4 + 3 (3 espacios desde el inicio) deja 4 espacios entre cada rotor y la poscion la baja 3 espacios desde el TOP
 ret
 
 printDebugEntrada:
@@ -269,8 +266,8 @@ printDebugEntrada:
 	push rsi
 	push rdx
 	
-	mov rsi, debugEntrada			;address of the buffer to print out
-	mov rdx, 1				;number of chars to print out
+	mov rsi, debugEntrada	;address of the buffer to print out
+	mov rdx, 1						;number of chars to print out
 	call sys_write
 	
 	pop rdx
@@ -283,8 +280,8 @@ printDebugSalida:
 	push rsi
 	push rdx
 	
-	mov rsi, debugSalida				;address of the buffer to print out
-	mov rdx, 1				;number of chars to print out
+	mov rsi, debugSalida		;address of the buffer to print out
+	mov rdx, 1						;number of chars to print out
 	call sys_write
 	
 	pop rdx
@@ -343,7 +340,7 @@ Delay:
 	push r8
 	push r10
 
-	mov dword [tv_sec], 0				; Sleep n seconds
+	mov dword [tv_sec], 0							; Sleep n seconds
 	mov dword [tv_usec], 200*1000000	; Sleep n nanoseconds 200*1000000 = 200 miliseg
 	mov rax, 162
 	mov rbx, timeval

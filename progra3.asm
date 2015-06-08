@@ -98,7 +98,7 @@ flechaL: db '<'
 debbugEntrada: db '#'
 debbugSalida: db '$'
 
-MensajeAEncriptar: db 'HEILHITLER',0h
+MensajeAEncriptar: db 'HOLACELES',0h
 
 null: db ' '								;caracter en blanco para 'borrar' caracteres de pantalla
 
