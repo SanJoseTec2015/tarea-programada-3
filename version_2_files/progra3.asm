@@ -27,7 +27,7 @@ ClearTerm: db 27,"[2J" 				; <ESC>[2J; clears display
 CLEARLEN equ $-ClearTerm 			; Length of term clear string
 
 ; EXTERN_THIS parse_files
-Rotores dq varRotor1, varRotor2, varRotor3, varRotor4, varRotor5, varReflector, 0h
+tabla_rotores dq varRotor1, varRotor2, varRotor3, varReflector, 0h
 
 section .text
 global _start
