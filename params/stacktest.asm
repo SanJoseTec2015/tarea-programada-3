@@ -30,34 +30,44 @@ _test:
     ; 
 
     ; Step 0: save return address from main.
-    pop qword [return]
+    ;mov qword [return], rsp
 
     ; Step 1: Obtain int argc
-    pop qword [argc]
+    mov rax, [rsp + 8]
+    mov qword [argc], rax
     
     ; Step 2: Obtain char** argv pointer, according to libc
-    pop qword [argv]
+    mov rax, [rsp +16]
+    mov qword [argv], rax
     
-    mov rax, [argc]
-    xor rcx, rcx
-    xor rsi, rsi
-    _begin:
-        cmp rcx, rax
-        ja _return
-        ; Get next parameter from argv, getting argv pointer according to libc
-        mov rsi, [argv]
-        mov rsi, [rsi + rcx*8]          ; Moving to rsi, the address of the paramater number rcx
-        inc rcx
-        ; Get next parameter from argv
-        call my_str
-        inc rcx
-        jmp _begin
+    mov rax, 1      ; syscall write
+    mov rdi, 1      ; file descriptor: stdout
+    mov rsi, argc
+    mov rdx, 8
+    syscall
+
+    ; mov rax, [argc]
+    ; xor rcx, rcx
+    ; xor rsi, rsi
+    ; _begin:
+    ;     cmp rcx, rax
+    ;     ja _return
+    ;     ; Get next parameter from argv, getting argv pointer according to libc
+    ;     mov rsi, [argv]
+    ;     mov rsi, [rsi + rcx*8]          ; Moving to rsi, the address of the paramater number rcx
+    ;     inc rcx
+    ;     ; Get next parameter from argv
+    ;     call my_str
+    ;     inc rcx
+    ;     jmp _begin
         
     _return:
-    push qword [return]
+    ;mov rsp, [return]
     ret
 
 my_str:
+;	push rbp
+;	mov rbp, rsp
     push rdx
     push rcx
     push rax
@@ -78,4 +88,6 @@ my_str:
     pop rax
     pop rcx
     pop rdx
+;    mov rsp, rbp
+;    pop rbp
     ret
