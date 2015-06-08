@@ -16,10 +16,10 @@
 section .text
 
 extern MensajeAEncriptar, PrintRotor, AnimarRotor, AnimarEntradaRotores, AnimarSalidaRotores
-extern Delay, limpiarLetraAnteriorMovida, tabla_rotores, varMsjEncriptado, primeraLetraRotor
-extern PrintMsjEncriptado
+extern Delay, limpiarLetraAnteriorMovida, tabla_rotores, varMsjEncriptado, primeraLetraRotor, 
+extern PrintMsjEncriptado, GotoXY
 
-global RecorrerBufferAEncriptar
+global RecorrerBufferAEncriptar, AddCharVarMsjEncriptado
 
 RecorrerBufferAEncriptar:
 xor rcx, rcx
@@ -29,6 +29,10 @@ xor rcx, rcx
 		inc rcx
 		cmp byte[MensajeAEncriptar + rcx], 0h
 			jnz .siguienteLetra
+			
+	;cuando termina de encriptar la ultima letra, manda el cursor al lado inferior de la pantalla
+	mov ax, 0426h 			; X,Y = 28,05 as a single hex value in AX
+	call GotoXY 					; Position the cursor
 ret
 
 EncriptarLetra:
@@ -53,6 +57,7 @@ EncriptarLetra:
 		mov rsi, [tabla_rotores + r10 * 8]
 		; obtiene la letra del rotor actual
 		call GetLetraRotorEntrando				;recibe la letra en RAX, y deja la salida en RAX
+		
 		inc r10									;next rotor
 		cmp qword[tabla_rotores + r10 * 8], 0h		;la cantidad de rotores + 1 reflector
 			jnz .siguienteRotorEntrada
@@ -75,9 +80,9 @@ EncriptarLetra:
 				jns .siguienteRotorSalida				;si es mayor a 0 siga con el siguiente
 
 		; FIXME: Aquí debe llamarse al plugboard a sustituir
-
 		call AddCharVarMsjEncriptado				;mueve al buffer de msj encriptado la letra y aumenta su indice en r15
-		
+		call Delay
+
 		xor r10, r10
 		call GirarRotor								;gira el rotor rsi en la posicion r10
 		
@@ -92,6 +97,7 @@ GetLetraRotorEntrando:
 	sub rax, "A"						;se resta A para obtener el indice del entrada
 	mov al, byte[rsi+rax]
 ret
+
 GetLetraRotorSaliendo:
 	call AnimarSalidaRotores
 	push rcx

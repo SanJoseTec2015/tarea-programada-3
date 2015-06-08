@@ -20,7 +20,7 @@ varRotor4 db 'ESOVPZJAYQUIRHXLNFTGKDCMWB',0h
 varRotor5 db 'VZBRGITYUPSDNHLXAWMJQOFECK',0h
 varReflector  db 'JPGVOUMFYQBENHZRDKASXLICTW',0h
 
-MensajeAEncriptar: db 'HEILHITLER',0h
+MensajeAEncriptar: db 'HE',0h
 varMsjEncriptado: db '..........................',0h
 
 ClearTerm: db 27,"[2J" 				; <ESC>[2J; clears display

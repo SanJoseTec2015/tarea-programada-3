@@ -39,9 +39,10 @@ debugEntrada: db '#'
 debugSalida: db '$'
 
 global PrintMsjEncriptado, AnimarEntradaRotores, AnimarSalidaRotores
-global PrintRotor, AnimarRotor, Delay, limpiarLetraAnteriorMovida, primeraLetraRotor
+global PrintRotor, AnimarRotor, Delay, limpiarLetraAnteriorMovida
+global primeraLetraRotor, GotoXY
 
-extern tabla_rotores, varMsjEncriptado, MensajeAEncriptar, sys_write
+extern tabla_rotores, varMsjEncriptado, MensajeAEncriptar, sys_write, AddCharVarMsjEncriptado
 
 ; ============================================================================================== EXTERN_THIS
 ; ANIMACIONES
@@ -51,52 +52,28 @@ PrintMsjEncriptado:			; imprime al pie de pagina el buffer con el msj encriptado
 	push rdx
 	push rsi
 	
+	mov ax, 2805h 			; X,Y = 28,05 as a single hex value in AX
+	call GotoXY 			; Position the cursor
+	mov rsi, MensajeAEncriptar				;address of the buffer to print out
+	mov rdx, r15									;number of chars to print out
+	call sys_write	
+	
 	mov ax, 2807h 			; X,Y = 28,07 as a single hex value in AX
 	call GotoXY 			; Position the cursor
-	
 	mov rsi, varMsjEncriptado				;address of the buffer to print out
 	mov rdx, r15									;number of chars to print out
 	call sys_write	
 	
-	mov ax, 2805h 			; X,Y = 28,07 as a single hex value in AX
-	call GotoXY 			; Position the cursor
-	
-	mov rsi, MensajeAEncriptar				;address of the buffer to print out
-	mov rdx, r15									;number of chars to print out
-	call sys_write	
 
 	pop rsi
 	pop rdx
-	pop rax
-ret
-
-PrintRotor:
-	push rax
-	push rcx
-	push rdx
-	push rsi
-	
-	cmp rcx, 25									; llama a la animacion de mover letra si la letra no esta en la ultima posicion
-		ja .continuar
-		call animarPrimeraLetraRotor ;else
-	
-	.continuar:
-
-	call GetPosRotorActual
-	call GotoXY
-
-	mov rsi, rsi								; address of the buffer to print out
-	mov rdx, 27									; number of chars to print out
-	call sys_write
-	
-	pop rsi
-	pop rdx
-	pop rcx
 	pop rax
 ret
 
 AnimarEntradaRotores:
 	call Delay											;se espera n seg
+	call AnimarLetraEncriptada				;se va actualizando la letra encriptada en cada rotor
+
 	push rax
 	push rcx
 	push rdx
@@ -133,6 +110,8 @@ ret
 
 AnimarSalidaRotores:
 	call Delay
+	call AnimarLetraEncriptada				;se va actualizando la letra encriptada en cada rotor
+
 	push rax
 	push rbx
 	push rcx
@@ -210,6 +189,12 @@ AnimarRotor:
 	pop rax
 ret
 
+AnimarLetraEncriptada:
+	call AddCharVarMsjEncriptado		;mueve al buffer de msj encriptado la letra y aumenta su indice en r15
+	call PrintMsjEncriptado					;imprime al pie de pagina el buffer con el msj encriptado
+	dec r15										;volvemos a dejar el indice en la posicion que le corresponde
+ret
+
 limpiarLetraAnteriorMovida:
 	push rcx
 	push rdx
@@ -259,6 +244,31 @@ GetPosRotorActual:
 	mov al, r10b				; POS Y	R10 es el indice del rotor actual, usado como escala relativa al top de la pantalla
 	shl al, 2						; se multiplica por 4 el indice para dejar una separacion en pantalla de cada rotor
 	add al, 3						; POS Y = pos rotor * 4 + 3 (3 espacios desde el inicio) deja 4 espacios entre cada rotor y la poscion la baja 3 espacios desde el TOP
+ret
+
+PrintRotor:
+	push rax
+	push rcx
+	push rdx
+	push rsi
+	
+	cmp rcx, 25									; llama a la animacion de mover letra si la letra no esta en la ultima posicion
+		ja .continuar
+		call animarPrimeraLetraRotor ;else
+	
+	.continuar:
+
+	call GetPosRotorActual
+	call GotoXY
+
+	mov rsi, rsi								; address of the buffer to print out
+	mov rdx, 27									; number of chars to print out
+	call sys_write
+	
+	pop rsi
+	pop rdx
+	pop rcx
+	pop rax
 ret
 
 printDebugEntrada:
@@ -341,7 +351,7 @@ Delay:
 	push r10
 
 	mov dword [tv_sec], 0							; Sleep n seconds
-	mov dword [tv_usec], 200*1000000	; Sleep n nanoseconds 200*1000000 = 200 miliseg
+	mov dword [tv_usec], 150*1000000	; Sleep n nanoseconds 200*1000000 = 200 miliseg
 	mov rax, 162
 	mov rbx, timeval
 	mov rcx, 0
