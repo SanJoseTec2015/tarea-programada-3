@@ -67,7 +67,10 @@ EncriptarLetra:
 	; ESTE EN EL CICLO ANTERIOR ESTA OBTENIENDO UN RESULTADO.... (COMO DEBE SER), por lo tanto no es necesario
 	; agregar nada extra.
 	
-	sub r10, 2									;le restamos las posicion del indice 'muerto' (el ultimo del indice (4)) y le restamos el reflector
+	dec r10									;le restamos las posicion del indice 'muerto' (el ultimo del indice (4)) 
+	call AnimarSalidaRotores						;animamos la salida del reflector (pero no modificamos la letra que entra)
+	dec r10									;y le restamos el reflector
+
 
 	; AHORA OBTENEMOS EL RESULTADO DE VUELTA EN CADA ROTOR... PERO EL REFLECTOR LO ESTAMOS SALTANDO
 	
