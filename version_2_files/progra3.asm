@@ -27,9 +27,10 @@ varMsjEncriptado: db '..........................',0h
 ClearTerm: db 27,"[2J" 				; <ESC>[2J; clears display
 CLEARLEN equ $-ClearTerm 			; Length of term clear string
 
-; EXTERN_THIS parse_files
 lista_rotores dq varRotor1, varRotor2, varRotor3, varRotor4, varRotor5
 tabla_rotores dq 0, 0, 0, varReflector, 0h
+
+msg_error_argc: db 'Por favor ingrese al menos 2 parámetros.'
 
 debug_qword: dq 0
 
@@ -37,14 +38,30 @@ section .text
 global _start
 
 global MensajeAEncriptar, varMsjEncriptado, varRotor1, varRotor2, varRotor3, tabla_rotores
+global settings_pointer, input_pointer
 global sys_write
-extern RecorrerBufferAEncriptar, selec_rotor, RomanosRotores
+extern RecorrerBufferAEncriptar, RomanosRotores, LEER_ARGUMENTOS
+extern first_param, secondparam, selec_rotor, argc
 
 _start:
+	; HOWTO: read arguments from stack without libC:
+	; Finally found the proper documentation, at page 29.
+    ; AMD64 Application Binary Interface System V specification
+    ; Section 3.4 Process Initialization
+    ; "Figure 3.9: Initial Process Stack"
+    ; This order is used if only assembly will be used.
+
+    ; Step 0: back-up top of stack in base pointer, use rbp instead
+    xor rbp, rbp
+    mov rbp, rsp
+    call LEER_ARGUMENTOS		; LEER_ARGUMENTOS descarta automáticamente argumentos extra
+    cmp qword [argc], 3				; Si no tiene al menos 2 argumentos (aparte del nombre del ejecutable)
+    jb error_argc
+
 	call RomanosRotores
 	call SeleccionarRotores
-	call ClrScr
-	call RecorrerBufferAEncriptar
+	;call ClrScr
+	;call RecorrerBufferAEncriptar
 	done:
 		mov rax, 60							;sys_exit (code 60)
 		mov rdi, 0							;exit_code (code 0 successful)
@@ -61,6 +78,9 @@ ClrScr:
 	pop rdx 			        ; Restore pertinent registers
 	pop rsi
 ret
+
+error_argc:
+
 
 sys_write:
 	push rax
