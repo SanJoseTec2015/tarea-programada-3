@@ -22,7 +22,7 @@ varReflector  db 'ZYXWVUTSRQPONMLKJIHGFEDCBA',0h
 ;varReflector  db 'JPGVOUMFYQBENHZRDKASXLICTW',0h
 
 MensajeAEncriptar: db 'DYKRMNZGCN',0h
-varMsjEncriptado: db '..........................',0h
+varMsjEncriptado: resb 1024
 
 ClearTerm: db 27,"[2J" 				; <ESC>[2J; clears display
 CLEARLEN equ $-ClearTerm 			; Length of term clear string
