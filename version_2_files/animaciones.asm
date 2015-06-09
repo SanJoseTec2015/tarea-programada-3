@@ -35,8 +35,12 @@ entradL: db 'v'
 null: 	 db ' '					; caracter en blanco para 'borrar' caracteres de pantalla
 
 ; EXTERN_THIS animaciones
-debugEntrada: db '#'
-debugSalida: db '$'
+debugEntrada: db ' v '
+debugEntradaLEN:  equ $-debugEntrada 
+
+debugSalida: db ' ^ '
+debugSalidaLEN:  equ $-debugSalida 
+
 
 global PrintMsjEncriptado, AnimarEntradaRotores, AnimarSalidaRotores
 global PrintRotor, AnimarRotor, Delay, limpiarLetraAnteriorMovida
@@ -81,6 +85,7 @@ AnimarEntradaRotores:
 	;-----POS  DE ENTRADA DEL ROTOR ACTUAL
 	sub rax, "A"										;se resta A para obtener el indice del entrada
 	mov rdx, rax										;se resta A para obtener el indice del entrada
+	dec rdx											;nos corremos una pos a la izquierda
 	call GetPosRotorActual
 	add ah, dl											;se incrementa desde la posicon inicial hasta el indice
 	dec al												;se sube una linea
@@ -126,7 +131,7 @@ AnimarSalidaRotores:
 			jnz .buscarLetra
 		
 		;-----POS  DE ENTRADA DEL ROTOR ACTUAL
-
+	dec rcx												;nos movemos una pos a la izquierda
 	call GetPosRotorActual
 	add ah, cl											;se incrementa desde la posicon inicial hasta el indice
 	dec al													;se sube una linea
@@ -277,7 +282,7 @@ printDebugEntrada:
 	push rdx
 	
 	mov rsi, debugEntrada	;address of the buffer to print out
-	mov rdx, 1						;number of chars to print out
+	mov rdx, debugEntradaLEN						;number of chars to print out
 	call sys_write
 	
 	pop rdx
@@ -291,7 +296,7 @@ printDebugSalida:
 	push rdx
 	
 	mov rsi, debugSalida		;address of the buffer to print out
-	mov rdx, 1						;number of chars to print out
+	mov rdx, debugSalidaLEN						;number of chars to print out
 	call sys_write
 	
 	pop rdx
