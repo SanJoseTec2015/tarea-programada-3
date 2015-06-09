@@ -9,6 +9,8 @@ debug_qword: dq 0
 
 section .text
 global LEER_ARGUMENTOS, argc
+extern sys_write
+extern settings_pointer, input_pointer
 
 LEER_ARGUMENTOS:
 ; Receives top of stack as parameter on RBP (base pointer)
@@ -30,12 +32,12 @@ LEER_ARGUMENTOS:
 
     _begin:
         cmp rcx, qword [argc]
-        ja _done
+        jg _done
         mov rdi, [rsi+rcx*8]    ; Get next *pointer* to next parameter
         inc rcx
-        cmp rcx, 1
+        cmp rcx, 2              ; select second parameter, discard filename
         jz .save_first
-        cmp rcx, 2
+        cmp rcx, 3              ; select third parameter, discard filename
         jz .save_second
         jmp .continue
         .save_first:
@@ -84,3 +86,6 @@ save_param_in_r14:
     pop rcx
     pop rdx
     ret
+
+ABRIR_ARCHIVOS:
+    
