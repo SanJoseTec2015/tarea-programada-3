@@ -7,10 +7,15 @@ section .data
 
 debug_qword: dq 0
 
+settings_pointer: dq 0
+input_pointer: dq 0
+config_contenido : times 256 db 0x00
+entrada_contenido : times 256 db 0x00
+
 section .text
-global LEER_ARGUMENTOS, argc
+global LEER_ARGUMENTOS, ABRIR_CONFIGURACION, ABRIR_ENTRADA, config_contenido, entrada_contenido, argc
 extern sys_write
-extern settings_pointer, input_pointer
+
 
 LEER_ARGUMENTOS:
 ; Receives top of stack as parameter on RBP (base pointer)
@@ -75,10 +80,6 @@ save_param_in_r14:
         inc rcx
         cmp rax, 0
         jnz .find_null
-    ; Print argument
-    ;mov rsi, rdi    ; use address where parameter begins on stack
-    ;mov rdx, rcx    ; use strlen
-    ;call sys_write
     pop rsi
     pop rdi
     pop r14
@@ -87,5 +88,66 @@ save_param_in_r14:
     pop rdx
     ret
 
-ABRIR_ARCHIVOS:
-    
+ABRIR_CONFIGURACION:
+; Deja el resultado de abrir el archivo en rax
+    ;push rax
+    push rdi
+    push rcx
+    push rsi
+    mov rax, 2      ; sys_open
+    mov rdi, first_param
+    xor rsi, rsi    ; read_only
+    mov rdx, 0400o  ; permission to read for current user, and nobody else has permissions
+    syscall
+    cmp rax, 0
+    jl .done 
+    mov [settings_pointer], rax ; si la lectura no dio error guarde el resultado
+
+    mov rax, 0                      ; read(
+    mov rdi, [settings_pointer]     ;   file_descriptor,
+    mov rsi, config_contenido       ;   *buf,
+    mov rdx, 256                    ;   *bufsize
+    syscall                         ; );
+
+    mov rax, 6      ; sys_close
+    mov rdi, [settings_pointer]
+    syscall
+    mov rax, 1
+    .done:
+    pop rsi
+    pop rcx
+    pop rdi
+    ;pop rax
+    ret
+
+ABRIR_ENTRADA:
+; Deja el resultado de abrir el archivo en rax
+    ;push rax
+    push rdi
+    push rcx
+    push rsi
+    mov rax, 2      ; sys_open
+    mov rdi, secondparam
+    xor rsi, rsi    ; read_only
+    mov rdx, 0400o  ; permission to read for current user, and nobody else has permissions
+    syscall
+    cmp rax, 0
+    jl .done 
+    mov [input_pointer], rax ; si la lectura no dio error guarde el resultado
+
+    mov rax, 0                      ; read(
+    mov rdi, [input_pointer]        ;   file_descriptor,
+    mov rsi, entrada_contenido      ;   *buf,
+    mov rdx, 256                    ;   *bufsize
+    syscall                         ; );
+
+    mov rax, 6      ; sys_close
+    mov rdi, [input_pointer]
+    syscall
+    mov rax, 1
+    .done:
+    pop rsi
+    pop rcx
+    pop rdi
+    ;pop rax
+    ret
