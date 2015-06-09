@@ -27,10 +27,10 @@ varMsjEncriptado: db '..........................',0h
 ClearTerm: db 27,"[2J" 				; <ESC>[2J; clears display
 CLEARLEN equ $-ClearTerm 			; Length of term clear string
 
-lista_rotores dq varRotor1, varRotor2, varRotor3, varRotor4, varRotor5
-tabla_rotores dq 0, 0, 0, varReflector, 0h
+lista_rotores: dq varRotor1, varRotor2, varRotor3, varRotor4, varRotor5
+tabla_rotores: dq 0, 0, 0, varReflector, 0h
 
-msg_error_argc: db 'Por favor ingrese al menos 2 parámetros.', 10
+msg_error_argc: db 'Parametros insuficientes o error al abrir algun archivo.', 10
 msg_error_argcLEN equ $-msg_error_argc
 
 debug_qword: dq 0
@@ -41,7 +41,7 @@ global _start
 global MensajeAEncriptar, varMsjEncriptado, varRotor1, varRotor2, varRotor3, tabla_rotores
 global settings_pointer, input_pointer
 global sys_write
-extern RecorrerBufferAEncriptar, RomanosRotores, LEER_ARGUMENTOS
+extern RecorrerBufferAEncriptar, RomanosRotores, LEER_ARGUMENTOS, ABRIR_CONFIGURACION, ABRIR_ENTRADA
 extern first_param, secondparam, selec_rotor, argc
 
 _start:
@@ -58,7 +58,12 @@ _start:
     call LEER_ARGUMENTOS		; LEER_ARGUMENTOS descarta automáticamente argumentos extra
     cmp qword [argc], 3			; Si no tiene al menos 2 argumentos (aparte del nombre del ejecutable)
     jb error_argumentos
-    ;call ABRIR_ARCHIVOS
+    call ABRIR_CONFIGURACION
+    cmp rax, 0
+    jl error_argumentos
+    call ABRIR_ENTRADA
+    cmp rax, 0
+    jl error_argumentos
 
 	call RomanosRotores
 	call SeleccionarRotores
@@ -134,25 +139,6 @@ SeleccionarRotores:
 			inc r13
 			jmp .ciclo
 	.return:
-
-	mov r15, [lista_rotores]
-	call debug_qword_r15
-	mov r15, [lista_rotores+8]
-	call debug_qword_r15
-	mov r15, [lista_rotores+16]
-	call debug_qword_r15
-	mov r15, [lista_rotores+24]
-	call debug_qword_r15
-	mov r15, [lista_rotores+32]
-	call debug_qword_r15
-	xor r15, r15
-	call debug_qword_r15
-	mov r15, [tabla_rotores]
-	call debug_qword_r15
-	mov r15, [tabla_rotores+8]
-	call debug_qword_r15
-	mov r15, [tabla_rotores+16]
-	call debug_qword_r15
 	pop r12
 	pop r13
 	pop r14
