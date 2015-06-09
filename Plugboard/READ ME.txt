@@ -1,0 +1,1 @@
+darle el archivo config.txt como el stdin

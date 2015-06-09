@@ -13,18 +13,21 @@
 ;---------------------------------------------------------------------------------------------------------;
 section .data
 
-varRotor1 db 'AJDKSIRUXBLHWTMCQGZNPYFVOE',0h
-varRotor2 db 'BDFHJLCPRTXVZNYEIWGAKMUSQO',0h
-varRotor3 db 'VZBRGITYUPSDNHLXAWMJQOFECK',0h
+varRotor1 db 'EKMFLGDQVZNTOWYHXUSPAIBRCJ',0h
+varRotor2 db 'AJDKSIRUXBLHWTMCQGZNPYFVOE',0h
+varRotor3 db 'BDFHJLCPRTXVZNYEIWGAKMUSQO',0h
+varRotor4 db 'ESOVPZJAYQUIRHXLNFTGKDCMWB',0h
+varRotor5 db 'VZBRGITYUPSDNHLXAWMJQOFECK',0h
+varReflector  db 'JPGVOUMFYQBENHZRDKASXLICTW',0h
 
-MensajeAEncriptar: db 'HEILHITLER',0h
+MensajeAEncriptar: db 'HE',0h
 varMsjEncriptado: db '..........................',0h
 
 ClearTerm: db 27,"[2J" 				; <ESC>[2J; clears display
 CLEARLEN equ $-ClearTerm 			; Length of term clear string
 
 ; EXTERN_THIS parse_files
-tabla_rotores dq varRotor1, varRotor2, varRotor3, 0h
+tabla_rotores dq varRotor1, varRotor2, varRotor3, varReflector, 0h
 
 section .text
 global _start
