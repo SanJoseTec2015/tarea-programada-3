@@ -1,7 +1,11 @@
+section .bss
+	plug resq 1;  ; Pointer to Config
+
+
 section .text
 
 global RemplazoPlugboard
-extern plug, config_contenido
+extern config_contenido
 
 
 ;PROCEDIMIENTO PRINCIPAL DEL PLUGBOARD
