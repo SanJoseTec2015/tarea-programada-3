@@ -17,7 +17,7 @@ section .text
 
 extern MensajeAEncriptar, PrintRotor, AnimarRotor, AnimarEntradaRotores, AnimarSalidaRotores
 extern Delay, limpiarLetraAnteriorMovida, tabla_rotores, varMsjEncriptado, primeraLetraRotor, 
-extern PrintMsjEncriptado, GotoXY
+extern PrintMsjEncriptado, GotoXY, RemplazoPlugboard
 
 global RecorrerBufferAEncriptar, AddCharVarMsjEncriptado
 
@@ -51,6 +51,9 @@ EncriptarLetra:
 	; Ciclo para obtener las letras encriptadas que entran
 	xor r10, r10
 
+	mov r9b, al
+	call RemplazoPlugboard
+	mov al, r9b
 	; FIXME: Aquí debe llamarse al plugboard a sustituir
 
 	.siguienteRotorEntrada						
@@ -62,7 +65,6 @@ EncriptarLetra:
 		cmp qword[tabla_rotores + r10 * 8], 0h		;la cantidad de rotores + 1 reflector
 			jnz .siguienteRotorEntrada
 		
-	; FIXME: Aquí se agrega el reflector
 	; ACLARAR.... EN LA TABLA DE ROTORES <tabla_rotores> SE PONE EN LA ULTIMA POSICION EL REFLECTOR...
 	; ESTE EN EL CICLO ANTERIOR ESTA OBTENIENDO UN RESULTADO.... (COMO DEBE SER), por lo tanto no es necesario
 	; agregar nada extra.
@@ -74,22 +76,25 @@ EncriptarLetra:
 
 	; AHORA OBTENEMOS EL RESULTADO DE VUELTA EN CADA ROTOR... PERO EL REFLECTOR LO ESTAMOS SALTANDO
 	
-		; Ciclo para obtener las letras encriptadas que entran
-		.siguienteRotorSalida					
-			mov rsi, [tabla_rotores + r10 * 8]
-			; obtiene la letra del rotor actual
-			call GetLetraRotorSaliendo				;recibe la letra en RAX, y deja la salida en RAX
-			dec r10											;next rotor
-				jns .siguienteRotorSalida				;si es mayor a 0 siga con el siguiente
+	; Ciclo para obtener las letras encriptadas que entran
+	.siguienteRotorSalida					
+		mov rsi, [tabla_rotores + r10 * 8]
+		; obtiene la letra del rotor actual
+		call GetLetraRotorSaliendo				;recibe la letra en RAX, y deja la salida en RAX
+		dec r10											;next rotor
+			jns .siguienteRotorSalida				;si es mayor a 0 siga con el siguiente
 
-		; FIXME: Aquí debe llamarse al plugboard a sustituir
-		call AddCharVarMsjEncriptado				;mueve al buffer de msj encriptado la letra y aumenta su indice en r15
-		call Delay
+	mov r9b, al
+	call RemplazoPlugboard
+	mov al, r9b
 
-		xor r10, r10
-		call GirarRotor								;gira el rotor rsi en la posicion r10
-		
-		pop rcx
+	call AddCharVarMsjEncriptado				;mueve al buffer de msj encriptado la letra y aumenta su indice en r15
+	call Delay
+
+	xor r10, r10
+	call GirarRotor								;gira el rotor rsi en la posicion r10
+	
+	pop rcx
 ret
 
 ; ======================================================================================== FUNCIONAMIENTO INTERNO
@@ -171,6 +176,7 @@ GirarRotor:
 	inc rcx									; se incrementa el indice para borrar el caracter movido anterior
 	call limpiarLetraAnteriorMovida
 	call PrintRotor
+	call AnimarRotor
 
 	pop rsi
 	pop r8
