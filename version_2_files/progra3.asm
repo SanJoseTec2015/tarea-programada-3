@@ -18,9 +18,10 @@ varRotor2 db 'AJDKSIRUXBLHWTMCQGZNPYFVOE',0h
 varRotor3 db 'BDFHJLCPRTXVZNYEIWGAKMUSQO',0h
 varRotor4 db 'ESOVPZJAYQUIRHXLNFTGKDCMWB',0h
 varRotor5 db 'VZBRGITYUPSDNHLXAWMJQOFECK',0h
-varReflector  db 'JPGVOUMFYQBENHZRDKASXLICTW',0h
+varReflector  db 'ZYXWVUTSRQPONMLKJIHGFEDCBA',0h
+;varReflector  db 'JPGVOUMFYQBENHZRDKASXLICTW',0h
 
-MensajeAEncriptar: db 'HE',0h
+MensajeAEncriptar: db 'DYKRMNZGCN',0h
 varMsjEncriptado: db '..........................',0h
 
 ClearTerm: db 27,"[2J" 				; <ESC>[2J; clears display
