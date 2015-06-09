@@ -4,45 +4,11 @@ selec_rotor: dq 0, 0, 0
 error_chars: db 'Se ha encontrado un caracter inválido o se ha excedido el valor requerido.', 10
 error_charsLEN: equ $-error_chars
 
-testmsg: db 'test', 10
-testmsgLEN equ $-testmsg
-
-debug_qword: dq 0
 section .text
-;extern sys_write
-global _start
+extern sys_write
+global selec_rotor, RomanosRotores
 
-sys_write:
-	push rax
-	push rdi 
-	push rcx 	; IMPORTANTE: el sys_write y otros syscalls modifican rcx
-				; Experiencia personal :P
-	mov rax, 1	; sys_write (code 1)
-	mov rdi, 1	; file_descriptor (code 1 stdout)
-	syscall									
-	
-	pop rcx
-	pop rdi
-	pop rax
-ret
-
-_start:
-	call SeleccionarRotores
-	
-	mov r15, [selec_rotor]
-	call debug_qword_r15
-	mov r15, [selec_rotor+8] 
-	call debug_qword_r15
-	mov r15, [selec_rotor+16] 
-	call debug_qword_r15
-
-	_exit:
-	 	mov rax, 60							;sys_exit (code 60)
-	 	mov rdi, 0							;exit_code (code 0 successful)
-	 	syscall
-
-
-SeleccionarRotores:
+RomanosRotores:
 ; El buffer debe contener solamente la línea de los rotores
 ; seleccionados en el archivo.
 ; Se asume que no hay otros caracteres en este buffer,
@@ -168,15 +134,4 @@ SeleccionarRotores:
 	pop rax
 	pop rbx
 	pop r14
-	ret
-
-debug_qword_r15:
-	push rsi
-	push rdx
-	mov [debug_qword], r15
-	mov rsi, debug_qword
-	mov rdx, 8
-	call sys_write
-	pop rdx
-	pop rsi
 	ret
