@@ -30,7 +30,8 @@ CLEARLEN equ $-ClearTerm 			; Length of term clear string
 lista_rotores dq varRotor1, varRotor2, varRotor3, varRotor4, varRotor5
 tabla_rotores dq 0, 0, 0, varReflector, 0h
 
-msg_error_argc: db 'Por favor ingrese al menos 2 parámetros.'
+msg_error_argc: db 'Por favor ingrese al menos 2 parámetros.', 10
+msg_error_argcLEN equ $-msg_error_argc
 
 debug_qword: dq 0
 
@@ -55,13 +56,18 @@ _start:
     xor rbp, rbp
     mov rbp, rsp
     call LEER_ARGUMENTOS		; LEER_ARGUMENTOS descarta automáticamente argumentos extra
-    cmp qword [argc], 3				; Si no tiene al menos 2 argumentos (aparte del nombre del ejecutable)
-    jb error_argc
+    cmp qword [argc], 3			; Si no tiene al menos 2 argumentos (aparte del nombre del ejecutable)
+    jb error_argumentos
+    ;call ABRIR_ARCHIVOS
 
 	call RomanosRotores
 	call SeleccionarRotores
-	;call ClrScr
-	;call RecorrerBufferAEncriptar
+	call ClrScr
+	call RecorrerBufferAEncriptar
+	jmp done
+
+	error_argumentos:
+		call error_argc			; por alguna razón no imprime pero no se cae :)
 	done:
 		mov rax, 60							;sys_exit (code 60)
 		mov rdi, 0							;exit_code (code 0 successful)
@@ -80,7 +86,14 @@ ClrScr:
 ret
 
 error_argc:
-
+	push rsi
+	push rdx
+	mov rsi, msg_error_argc
+	mov rdx, msg_error_argcLEN
+	call sys_write
+	pop rdx 			        ; Restore pertinent registers
+	pop rsi
+ret
 
 sys_write:
 	push rax
