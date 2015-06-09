@@ -1,5 +1,5 @@
 section .data
-test_buffer: db 'IIIII,IV,V', 10
+test_buffer: db 'V,IV,IIIII,', 0x00
 selec_rotor: dq 0, 0, 0
 error_chars: db 'Se ha encontrado un caracter inválido o se ha excedido el valor requerido.', 10
 error_charsLEN: equ $-error_chars
@@ -15,47 +15,31 @@ global _start
 sys_write:
 	push rax
 	push rdi 
-	
-	mov rax, 1								; sys_write (code 1)
-	mov rdi, 1								; file_descriptor (code 1 stdout)
+	push rcx 	; IMPORTANTE: el sys_write y otros syscalls modifican rcx
+				; Experiencia personal :P
+	mov rax, 1	; sys_write (code 1)
+	mov rdi, 1	; file_descriptor (code 1 stdout)
 	syscall									
 	
+	pop rcx
 	pop rdi
 	pop rax
 ret
 
 _start:
-	mov rsi, test_buffer
-
 	call SeleccionarRotores
 	
-	push rsi
-	push rdx
-	mov rsi, testmsg
-	mov [debug_qword], rsi
-	mov rsi, debug_qword
-	mov rdx, 8
-	call sys_write
-	pop rdx
-	pop rsi
+	mov r15, [selec_rotor]
+	call debug_qword_r15
+	mov r15, [selec_rotor+8] 
+	call debug_qword_r15
+	mov r15, [selec_rotor+16] 
+	call debug_qword_r15
 
 	_exit:
 	 	mov rax, 60							;sys_exit (code 60)
 	 	mov rdi, 0							;exit_code (code 0 successful)
 	 	syscall
-
-; StrLengthLineFeed:
-; 	push rsi
-; 	.ciclo:
-; 		mov al, [rsi]
-; 		inc rsi
-; 		cmp al, 0x0A
-; 		jnz .ciclo
-; 	mov rax, [rsp+8]						; obtenga el valor original de rsi de aquí mismo en la pila
-; 	sub rsi, rax							; offset final - offset inicial deja el tamaño en rsi
-; 	xchg rax, rsi							; mande el tamaño al rax
-; 	pop rsi
-; 	ret
 
 
 SeleccionarRotores:
@@ -69,27 +53,45 @@ SeleccionarRotores:
 ; selec_rotor: se llena la tabla con los valores reales
 ; Devuelve:
 ; rsi: offset del último caracter, debería ser un salto de línea
-	enter 8, 0
-	push rcx
+	push r14
 	push rbx
 	push rax
-	xor rcx, rcx	; contador comas
+	xor rsi, rsi
+	xor r14, r14	; contador comas
 	.ciclo:
-		cmp rcx, 3
+		cmp r14, 3
 		je NEAR .return
+
+		;mov r15, r14
+		;call debug_qword_r15
+		;mov r15, 0xF0
+		;call debug_qword_r15
+
 		xor rax, rax	; char actual
-		xor rbx, rbx	; numero acum
 		.encontrar_numero:
-			mov al, [rsi]
+			mov al, [test_buffer+rsi]
+
+			;mov r15, rax
+			;call debug_qword_r15
+			;mov r15, 0xF1
+			;call debug_qword_r15
+
 			; No incremente rsi hasta que encuentre que no hay error
 			cmp al, 0x56		; look for 'V'
 			jz .sume_cinco
 		; Se asume que no hay otros caracteres inválidos
 		; El ciclo empieza a sumar rbx=0
+			xor rbx, rbx	; numero acum
 		.sume_siguiente_char:
 			cmp rbx, 3
 			jz .siguiente_romano	; no se puede exceder de 3, III
-			mov al, [rsi]
+			mov al, [test_buffer+rsi]
+
+			;mov r15, rax
+			;call debug_qword_r15
+			;mov r15, 0xF2
+			;call debug_qword_r15
+
 			inc rsi
 			cmp al, 0x56			; encontró 'V'
 			jz .sume_tres
@@ -97,6 +99,12 @@ SeleccionarRotores:
 			jnz .siguiente_romano	; siempre que AL sea 'I' sume uno
 
 			inc rbx					; rbx++
+
+			;mov r15, rbx
+			;call debug_qword_r15
+			;mov r15, 0xF4
+			;call debug_qword_r15
+
 			jmp .sume_siguiente_char
 
 			; Lo que sigue después de 'I' fue 'V'
@@ -108,38 +116,44 @@ SeleccionarRotores:
 				jmp .siguiente_romano
 
 			.sume_cinco:
+				xor rbx, rbx		; borre lo que sea que tuviese acumulado
 				add rbx, 5
 				inc rsi
 
 		.siguiente_romano:
-			mov al, [rsi]
-			inc rsi
+			mov al, [test_buffer+rsi]
 
-			; si no encuentra salto de línea, lo que debe seguir es una coma
-			cmp al, 0x0A
-			jz .final_o_no
+			;mov r15, rax
+			;call debug_qword_r15
+
+			;mov r15, 0xF3
+			;call debug_qword_r15
+			
+			inc rsi						; basta para saltarse la coma del test_buffer
+
 			; Podría saltarse por ejemplo III(II) con tal de encontrar la coma
 			cmp al, 0x2C
 			jnz .siguiente_romano
 
+			;mov r15, r14
+			;call debug_qword_r15
+
+			;mov r15, 0xF5
+			;call debug_qword_r15
+
 			; guarde el número encontrado en la tabla de bytes
-			mov [selec_rotor+rcx*8], rbx
-			inc rcx				; siga con la siguiente coma
+			mov [selec_rotor+r14*8], rbx
+			inc r14				; siga con la siguiente coma
 
-		.final_o_no:
+			;mov r15, r14
+			;call debug_qword_r15
 
-			push rsi
-			push rdx
-			mov [debug_qword], rcx
-			mov rsi, debug_qword
-			mov rdx, 8
-			call sys_write
-			pop rdx
-			pop rsi
+			;mov r15, 0xF6
+			;call debug_qword_r15
 
-			cmp rcx, 3
-			jne NEAR .ciclo			; no ha terminado la tabla
-			jmp SHORT .return			; ya llenó toda la tabla selec_rotor
+			cmp r14, 3
+			jne .ciclo			; no ha terminado la tabla
+			jmp .return			; ya llenó toda la tabla selec_rotor
 
 	.error:
 		push rdx
@@ -153,6 +167,16 @@ SeleccionarRotores:
 	.return:
 	pop rax
 	pop rbx
-	pop rcx
-	leave
+	pop r14
+	ret
+
+debug_qword_r15:
+	push rsi
+	push rdx
+	mov [debug_qword], r15
+	mov rsi, debug_qword
+	mov rdx, 8
+	call sys_write
+	pop rdx
+	pop rsi
 	ret
