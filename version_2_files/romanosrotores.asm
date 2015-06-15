@@ -1,134 +1,95 @@
 section .data
 test_buffer: db 'I,II,III,', 0x00
 selec_rotor: dq 0, 0, 0
-error_chars: db 'Se ha encontrado un caracter inválido o se ha excedido el valor requerido.', 10
+error_chars: db 'Se ha encontrado un caracter no permitido.', 10
 error_charsLEN: equ $-error_chars
 
 section .text
-extern sys_write, debug_qword_r15
+extern entrada_contenido, sys_write, debug_qword_r15
 global selec_rotor, RomanosRotores
 
 RomanosRotores:
-; El buffer debe contener solamente la línea de los rotores
-; seleccionados en el archivo.
-; Se asume que no hay otros caracteres en este buffer,
-; aparte de 'I', 'V', comas y el salto de línea.
-; Entradas:
-; rsi: buffer de entrada de los números romanos de los rotores
-; Salidas:
-; selec_rotor: se llena la tabla con los valores reales
-; Devuelve:
-; rsi: offset del último caracter, debería ser un salto de línea
-	push r14
-	push rbx
+; El buffer debe contener solamente la línea de los rotores seleccionados en el archivo.
+; Si hay otros caracteres que no sean 'I' o 'V' simplemente emite un error.
+; Salida: selec_rotor se llena la tabla con los valores reales.
 	push rax
-	xor rsi, rsi
-	xor r14, r14	; contador comas
-	.ciclo:
-		cmp r14, 3
-		je NEAR .return
-
-		;mov r15, r14
-		;call debug_qword_r15
-		;mov r15, 0xF0
-		;call debug_qword_r15
-
-		xor rax, rax	; char actual
-		.encontrar_numero:
-			mov al, [test_buffer+rsi]
-
-			;mov r15, rax
-			;call debug_qword_r15
-			;mov r15, 0xF1
-			;call debug_qword_r15
-
-			; No incremente rsi hasta que encuentre que no hay error
-			cmp al, 0x56		; look for 'V'
-			jz .sume_cinco
-		; Se asume que no hay otros caracteres inválidos
-		; El ciclo empieza a sumar rbx=0
-			xor rbx, rbx	; numero acum
-		.sume_siguiente_char:
-			cmp rbx, 3
-			jz .siguiente_romano	; no se puede exceder de 3, III
-			mov al, [test_buffer+rsi]
-
-			;mov r15, rax
-			;call debug_qword_r15
-			;mov r15, 0xF2
-			;call debug_qword_r15
-
+	push rcx
+	push rsi
+	push rdi
+	xor rsi, rsi		; index for entrada_contenido
+	xor rdi, rdi		; index for selec_rotor
+	xor rcx, rcx		; counter of number from romans
+	xor rax, rax		; current char
+	.scan:
+		.first_char:
+			mov al, [entrada_contenido+rsi]
+			cmp al, 'V'
+			jz .case_5
+			cmp al, 'I'
+			jz .case_1
+			jmp .error
+				.case_5:
+					add rcx, 5		; rcx = 0; rcx += 5 -> rcx=5
+					inc rsi
+					jmp .check_comma
+				.case_1:
+					inc rcx			; rcx = 0; rcx += 1 -> rcx=1
+					inc rsi
+					;jmp .second_char
+		.second_char:
+			mov al, [entrada_contenido+rsi]
+			cmp al, 'V'
+			jz .case_4
+			cmp al, 'I'
+			jz .case_2
+			jmp .error
+				.case_4:
+					add rcx, 3		; rcx = 1; rcx += 3 -> rcx=4
+					inc rsi
+					jmp .check_comma
+				.case_2:
+					inc rcx			; rcx = 1; rcx += 1 -> rcx=2
+					inc rsi
+					;jmp .third_char
+		.third_char:
+			mov al, [entrada_contenido+rsi]
+			cmp al, 'I'
+			jz .case_3
+			jmp .error
+				.case_3:
+					inc rcx
+					inc rsi
+					jmp .check_comma
+		.check_comma:
+			mov al, [entrada_contenido+rsi]
 			inc rsi
-			cmp al, 0x56			; encontró 'V'
-			jz .sume_tres
-			cmp al, 0x49
-			jnz .siguiente_romano	; siempre que AL sea 'I' sume uno
+			cmp al, ','
+			jnz .check_linefeed
+			; Aún no sabemos si hay la suficiente cantidad de comas:
+			cmp rdi, 4
+			jz  .error	; se ha excedido
 
-			inc rbx					; rbx++
+		.store:
+			mov [selec_rotor+rdi*8], rcx
+			xor rcx, rcx
+			inc rdi
+			jmp .scan
 
-			;mov r15, rbx
-			;call debug_qword_r15
-			;mov r15, 0xF4
-			;call debug_qword_r15
-
-			jmp .sume_siguiente_char
-
-			; Lo que sigue después de 'I' fue 'V'
-			; No puede haber leído algo como IIV ó IIIV, debe ser 'IV'
-			.sume_tres:
-				cmp rbx, 1		
-				jnz .error
-				add rbx, 3		; 1+3 = 4 jaja
-				jmp .siguiente_romano
-
-			.sume_cinco:
-				xor rbx, rbx		; borre lo que sea que tuviese acumulado
-				add rbx, 5
-				inc rsi
-
-		.siguiente_romano:
-			mov al, [test_buffer+rsi]
-
-			;mov r15, rax
-			;call debug_qword_r15
-
-			;mov r15, 0xF3
-			;call debug_qword_r15
-			
-			inc rsi						; basta para saltarse la coma del test_buffer
-
-			; Podría saltarse por ejemplo III(II) con tal de encontrar la coma
-			cmp al, 0x2C
-			jnz .siguiente_romano
-
-			;mov r15, r14
-			;call debug_qword_r15
-
-			;mov r15, 0xF5
-			;call debug_qword_r15
-
-			; guarde el número encontrado en la tabla de bytes
-			mov [selec_rotor+r14*8], rbx
-			inc r14				; siga con la siguiente coma
-
-			;mov r15, r14
-			;call debug_qword_r15
-
-			;mov r15, 0xF6
-			;call debug_qword_r15
-
-			cmp r14, 3
-			jne .ciclo			; no ha terminado la tabla
-			jmp .return			; ya llenó toda la tabla selec_rotor
+		.check_linefeed:
+			cmp al, 0x0A
+			jnz .error
+			; Aún hay que verificar que no haya encontrado el salto
+			; de línea inesperadamente:
+			cmp rdi, 4
+			jz .return	; sólo si ya leyó las comas necesarias
 
 	.error:
-		push rdx
-		push rsi
 		mov rsi, error_chars
 		mov rdx, error_charsLEN
 		call sys_write
-		pop rsi
-		pop rdx
+		mov rax, 60							;sys_exit (code 60)
+		mov rdi, 0							;exit_code (code 0 successful)
+		syscall
 
 	.return:
 	pop rax

@@ -57,7 +57,7 @@ _start:
     call ABRIR_CONFIGURACION
     call ABRIR_ENTRADA
     
-	;call RomanosRotores
+	call RomanosRotores
 	
 	;mov r15, [selec_rotor]
 	;call debug_qword_r15
