@@ -1,11 +1,11 @@
 section .data
-test_buffer: db 'V,IV,IIIII,', 0x00
+test_buffer: db 'I,II,III,', 0x00
 selec_rotor: dq 0, 0, 0
 error_chars: db 'Se ha encontrado un caracter inválido o se ha excedido el valor requerido.', 10
 error_charsLEN: equ $-error_chars
 
 section .text
-extern sys_write
+extern sys_write, debug_qword_r15
 global selec_rotor, RomanosRotores
 
 RomanosRotores:

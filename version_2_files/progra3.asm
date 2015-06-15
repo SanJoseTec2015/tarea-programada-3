@@ -30,9 +30,6 @@ CLEARLEN equ $-ClearTerm 			; Length of term clear string
 lista_rotores: dq varRotor1, varRotor2, varRotor3, varRotor4, varRotor5
 tabla_rotores: dq 0, 0, 0, varReflector, 0h
 
-msg_error_argc: db 'Parametros insuficientes o error al abrir algun archivo.', 10
-msg_error_argcLEN equ $-msg_error_argc
-
 debug_qword: dq 0
 
 section .text
@@ -40,7 +37,7 @@ global _start
 
 global MensajeAEncriptar, varMsjEncriptado, varRotor1, varRotor2, varRotor3, tabla_rotores
 global settings_pointer, input_pointer
-global sys_write
+global sys_write, debug_qword_r15
 extern RecorrerBufferAEncriptar, RomanosRotores, LEER_ARGUMENTOS, ABRIR_CONFIGURACION, ABRIR_ENTRADA
 extern first_param, secondparam, selec_rotor, argc
 
@@ -56,23 +53,23 @@ _start:
     xor rbp, rbp
     mov rbp, rsp
     call LEER_ARGUMENTOS		; LEER_ARGUMENTOS descarta automáticamente argumentos extra
-    cmp qword [argc], 3			; Si no tiene al menos 2 argumentos (aparte del nombre del ejecutable)
-    jb error_argumentos
+    
     call ABRIR_CONFIGURACION
-    cmp rax, 0
-    jl error_argumentos
     call ABRIR_ENTRADA
-    cmp rax, 0
-    jl error_argumentos
+    
+	;call RomanosRotores
+	
+	;mov r15, [selec_rotor]
+	;call debug_qword_r15
+	;mov r15, [selec_rotor+8]
+	;call debug_qword_r15
+	;mov r15, [selec_rotor+8]
+	;call debug_qword_r15
 
-	call RomanosRotores
-	call SeleccionarRotores
-	call ClrScr
-	call RecorrerBufferAEncriptar
-	jmp done
+	;call SeleccionarRotores
+	;call ClrScr
+	;call RecorrerBufferAEncriptar
 
-	error_argumentos:
-		call error_argc			; por alguna razón no imprime pero no se cae :)
 	done:
 		mov rax, 60							;sys_exit (code 60)
 		mov rdi, 0							;exit_code (code 0 successful)
@@ -86,16 +83,6 @@ ClrScr:
 	mov rdx, CLEARLEN 		; Pass the length of terminal control string
 	call sys_write	
 
-	pop rdx 			        ; Restore pertinent registers
-	pop rsi
-ret
-
-error_argc:
-	push rsi
-	push rdx
-	mov rsi, msg_error_argc
-	mov rdx, msg_error_argcLEN
-	call sys_write
 	pop rdx 			        ; Restore pertinent registers
 	pop rsi
 ret
